@@ -78,7 +78,8 @@ jobs:
         working-directory: /mnt/data/bigstorage/scale-miniatures
         run: |
           set -euo pipefail
-          docker compose up -d --remove-orphans
+          # No --remove-orphans: it once decided this job's own runner was an orphan and killed it.
+          docker compose up -d
           if [ "${CADDY_CHANGED:-0}" = "1" ]; then
             # Recreate, not reload: see the note in the previous step about the mount.
             docker compose up -d --force-recreate web

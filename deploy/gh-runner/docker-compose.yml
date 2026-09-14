@@ -17,6 +17,9 @@
 # at the cost of keeping a longer-lived secret on the machine. The other runners here use RUNNER_TOKEN, so
 # this one does too.
 
+# Must differ from the site stack's project name: see the note in the root docker-compose.yml.
+name: scale-miniatures-runner
+
 services:
   runner:
     image: myoung34/github-runner:latest

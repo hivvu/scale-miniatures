@@ -14,6 +14,10 @@
 # Cloudflare Zero Trust, Networks, Tunnels, pick Docker, and it gives you a token and writes the DNS
 # record for you. Put that token in `.env` and never anywhere else.
 
+# Compose takes the project name from the directory, and the runner's directory is also called
+# scale-miniatures. Naming both explicitly is what stops one stack adopting the other's containers.
+name: scale-miniatures
+
 services:
   web:
     image: caddy:2-alpine
