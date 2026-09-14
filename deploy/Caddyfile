@@ -6,6 +6,14 @@
 	encode zstd gzip
 	root * /srv/site
 
+	# One address for one site. Two hostnames serving the same pages is duplicate content, and the
+	# canonical tag only papers over it; a 301 settles it. This has to be a `handle` and it has to come
+	# first: a bare `redir` is sorted by Caddy's own directive order and loses to the handles below.
+	@www host www.scaleminiatures.fun
+	handle @www {
+		redir https://scaleminiatures.fun{uri} permanent
+	}
+
 	# The poll service, the other container in the stack.
 	handle /api/* {
 		reverse_proxy poll:8787

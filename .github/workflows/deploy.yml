@@ -62,15 +62,27 @@ jobs:
           # The poll service and the two config files. MicroMac/ is deliberately untouched: it is not in
           # this repository, it lives only on that machine, and a deploy must never stand on it.
           rsync -a --delete server/ "$STACK/server/"
-          cp -a deploy/Caddyfile docker-compose.yml "$STACK/"
+
+          # A single-file bind mount follows the inode, so replacing the Caddyfile leaves the running
+          # container holding the old one and a reload changes nothing at all, silently. Write in place,
+          # and tell the next step whether it has to recreate the container to pick the new inode up.
+          before=$(sha256sum "$STACK/Caddyfile" 2>/dev/null | cut -d' ' -f1 || true)
+          cat deploy/Caddyfile > "$STACK/Caddyfile"
+          cat docker-compose.yml > "$STACK/docker-compose.yml"
+          after=$(sha256sum "$STACK/Caddyfile" | cut -d' ' -f1)
+          [ "$before" = "$after" ] && echo "CADDY_CHANGED=0" >> "$GITHUB_ENV" || echo "CADDY_CHANGED=1" >> "$GITHUB_ENV"
 
       - name: Bring the stack up to date
         working-directory: /mnt/data/bigstorage/scale-miniatures
         run: |
           set -euo pipefail
           docker compose up -d --remove-orphans
-          # Caddy reads its config from a mount, so a changed Caddyfile needs a reload. This validates the
-          # config first and keeps the running one if it is bad, so a typo cannot take the site down.
+          if [ "${CADDY_CHANGED:-0}" = "1" ]; then
+            # Recreate, not reload: see the note in the previous step about the mount.
+            docker compose up -d --force-recreate web
+            sleep 2
+          fi
+          # Validates the config and keeps the running one if it is bad, so a typo cannot take the site down.
           docker exec scale-miniatures-web caddy reload --config /etc/caddy/Caddyfile
 
       - name: Check it is actually answering
