@@ -419,7 +419,15 @@ describe.skipIf(!have)('front-end input loops', () => {
     d.w16(0x0C1E + 0x13, 5); d.w8(0x0164 + 5, 0x45);
     for (const rec of [0x0C39, 0x0C54]) d.w16(rec + 0x13, 0x0B);
     const g = new Driver(fe, elimination(fe, 0x0C1E));
-    g.frames(200);                                      // the face drops off the screen
+    // fn 174a measures every step of the drop from the seat, never from the step before. Accumulating them
+    // instead walks the face off the bottom of the screen, and the row count it then cuts by the step
+    // underflows to a byte near 0xff, so the blit writes thousands of rows through the buffer and the save
+    // segments behind it: that is what wrecked the banner here and the carousel's frame on the next screen.
+    const ys: number[] = [], rows: number[] = [];
+    for (let i = 0; i < 200; i++) { g.frames(1); ys.push(d.r16(0x0C1E + 0x04)); rows.push(d.r8(0x0C1E + 0x19)); }
+    expect(Math.max(...ys) - Math.min(...ys)).toBe(0x2F);   // the deepest step in the table at [034b]
+    expect(ys[ys.length - 1]).toBe(Math.min(...ys));        // and it is back on the seat at the end
+    expect(Math.max(...rows)).toBeLessThanOrEqual(d.r16(0x0C1E + 0x0F));
     expect(d.r8(0x0164 + 5) & 0x20).toBe(0x20);         // character 5 is out for good
     g.hold(0x08, 3); g.release(3); g.frames(30);        // the fire press fn 179b waits for
     for (let n = 0; n < 3; n++) {                       // then fn 1a4a asks for the empty seats
