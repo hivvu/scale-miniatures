@@ -51,13 +51,11 @@ jobs:
           set -euo pipefail
           test -d "$STACK" || { echo "no stack at $STACK: is the runner's mount right?"; exit 1; }
 
-          # Swap the site over rather than emptying it first, so nobody gets a 404 mid-deploy. The old one
-          # is kept until the new one is in, which also makes going back a rename away.
-          rm -rf "$STACK/dist.new" "$STACK/dist.old"
-          cp -a dist "$STACK/dist.new"
-          if [ -d "$STACK/dist" ]; then mv "$STACK/dist" "$STACK/dist.old"; fi
-          mv "$STACK/dist.new" "$STACK/dist"
-          rm -rf "$STACK/dist.old"
+          # Write INTO the directory, never replace it. `dist/` is bind-mounted into the web container, and
+          # a bind mount follows the inode: renaming the directory away and putting a new one in its place
+          # leaves the container pointing at something that has just been deleted, and every request 404s
+          # while the deploy reports success. Swapping is tidier on paper and takes the site down.
+          rsync -a --delete dist/ "$STACK/dist/"
 
           # The poll service and the two config files. MicroMac/ is deliberately untouched: it is not in
           # this repository, it lives only on that machine, and a deploy must never stand on it.
@@ -71,6 +69,10 @@ jobs:
           cat docker-compose.yml > "$STACK/docker-compose.yml"
           after=$(sha256sum "$STACK/Caddyfile" | cut -d' ' -f1)
           [ "$before" = "$after" ] && echo "CADDY_CHANGED=0" >> "$GITHUB_ENV" || echo "CADDY_CHANGED=1" >> "$GITHUB_ENV"
+
+          # This job runs as root in a container. Without this, everything it writes becomes root-owned and
+          # the next person to deploy by hand from a laptop is locked out of their own directory.
+          chown -R 1000:1000 "$STACK/dist" "$STACK/server" "$STACK/Caddyfile" "$STACK/docker-compose.yml"
 
       - name: Bring the stack up to date
         working-directory: /mnt/data/bigstorage/scale-miniatures
