@@ -17,6 +17,7 @@ import { decodeBlocks, expandMap } from '../data/blocks';
 import { decodeVehicle, frameTableBytes } from '../data/sprites';
 import { applyPriorityFlags } from './render';
 import { CARS } from './race';
+import { DOS_VIEWPORT, type Viewport } from './viewport';
 
 export const DS_IMAGE_OFFSET = 0x93C0;
 export { CARS };
@@ -32,6 +33,8 @@ export interface RaceParams {
   inputs: [number, number, number, number];
   /** [2668..266e]: character chosen for each car (index into the AI skill table at ds:23dc). */
   characters: [number, number, number, number];
+  /** How much of the world the race will draw. Only the camera depends on it; defaults to the original. */
+  viewport?: Viewport | undefined;
 }
 
 /** Bytes of the files one race needs; names are relative to the game folder. */
@@ -162,6 +165,7 @@ function twoPlayerParams(d: DataSegment, tbl: number): void {
 
 /** fn 3c09 without the file reads: race globals, start positions, AI parameters, car struct reset. */
 function initRaceState(d: DataSegment, p: RaceParams): void {
+  const vp = p.viewport ?? DOS_VIEWPORT;
   const wr = (o: number, v: number): void => d.w16(o, v);
   wr(0x264E, 8); wr(0x2650, 8); wr(0x26C6, 0); wr(0x2911, 0); wr(0x2913, 0); wr(0x26C4, 1);
   wr(0x26B4, 4); wr(0x26B6, 4); wr(0x26B8, 1); wr(0x26BA, 0);
@@ -174,16 +178,33 @@ function initRaceState(d: DataSegment, p: RaceParams): void {
   wr(0x2652, mx); wr(0x2654, mx >> 1);
   for (const o of [0x1380, 0x14E4, 0x1648, 0x17AC]) wr(o, 1);
   for (const o of [0x137E, 0x14E2, 0x1646, 0x17AA]) wr(o, 0);
+  // The per-car camera anchors start as whatever the executable shipped (they differ per car: 0x80, 0xa0,
+  // ...) and fn 525e only replaces them with half the view once the car is moving. Left alone, a wider view
+  // would hold the cars off-centre until then and snap across on the first move, so shift them by the same
+  // amount the view grew. At the original size this writes nothing at all.
+  if (vp.camOffsetX !== 0 || vp.camOffsetY !== 0) {
+    for (const bx of CARS) {
+      wr(bx + 0x1262, d.r16(bx + 0x1262) + vp.halfW - 0x80);
+      wr(bx + 0x126E, d.r16(bx + 0x126E) + vp.halfH - 0x64);
+    }
+  }
 
   // start position (STRT_POS.BIN at ds:1eab, 4 bytes per track: x, y); colour bits offset the cars on the grid
   let si = 0x1EAB + ((p.round - 1) << 4) + ((p.track - 1) << 2);
   let ax = (d.r16(si) + 0x14) & 0xFFFF; si += 2;
   for (const bx of CARS) { const cx = (ax + (d.r16(bx + 0x137C) & 1 ? 0x1A : 0)) & 0xFFFF; wr(bx + 0x125C, cx); wr(bx + 0x125E, cx); }
+  // The camera starts down and to the right of where it will settle and swoops in. 0xfa is measured from
+  // the original's 0x80/0x64 anchors, so a wider view has to move the seed with them or the cars start
+  // off-centre and snap across as soon as the camera catches up. The original's own wrap test comes first
+  // and the view's share only afterwards: which side of the world seam the seed lands on decides whether
+  // fn 5133 glides or jumps, and that decision has to stay the one the original takes.
   ax = (ax - 0xFA) & 0xFFFF; if (d16s(ax) <= 0) ax = (ax + 0xC00) & 0xFFFF;
+  ax = (ax - vp.camOffsetX + 0xC00) % 0xC00;
   wr(0x264A, ax); wr(0x2646, ax);
   ax = (d.r16(si) - 0xA) & 0xFFFF; si += 2;
   for (const bx of CARS) { const cx = (ax + (d.r16(bx + 0x137C) & 2 ? 0x1A : 0)) & 0xFFFF; wr(bx + 0x1268, cx); wr(bx + 0x126A, cx); }
   ax = (ax - 0xFA) & 0xFFFF; if (d16s(ax) <= 0) ax = (ax + 0xC00) & 0xFFFF;
+  ax = (ax - vp.camOffsetY + 0xC00) % 0xC00;
   wr(0x264C, ax); wr(0x2648, ax);
   // head-to-head progress words
   for (let i = 0; i < 3; i++) {

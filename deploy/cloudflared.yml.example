@@ -1,0 +1,41 @@
+# Cloudflare Tunnel for scaleminiatures.fun.
+#
+# The point of a tunnel is that nothing at home listens on the internet. cloudflared makes an outbound
+# connection to Cloudflare and they hand traffic back down it, so there is no port forwarding, no dynamic
+# DNS and no certificate to renew: TLS ends at Cloudflare's edge.
+#
+# One-off setup, on the machine that will run it:
+#
+#   cloudflared tunnel login                        # opens a browser, pick scaleminiatures.fun
+#   cloudflared tunnel create scale-miniatures      # writes the credentials file named below
+#   cloudflared tunnel route dns scale-miniatures scaleminiatures.fun
+#   cloudflared tunnel route dns scale-miniatures www.scaleminiatures.fun
+#   sudo cloudflared service install                # then it runs on boot
+#
+# Put this file at /etc/cloudflared/config.yml (or ~/.cloudflared/config.yml) and fix the two paths.
+
+tunnel: scale-miniatures
+credentials-file: /etc/cloudflared/<TUNNEL-UUID>.json
+
+# One local web server in front of everything, so the tunnel has a single thing to talk to. Use the nginx
+# or Caddy example beside this file and have it listen on 127.0.0.1:8080. Doing the routing in the tunnel
+# instead works, but then caching and headers have nowhere sensible to live.
+ingress:
+  - hostname: scaleminiatures.fun
+    service: http://127.0.0.1:8080
+  - hostname: www.scaleminiatures.fun
+    service: http://127.0.0.1:8080
+  - service: http_status:404
+
+# Worth setting in the Cloudflare dashboard once the tunnel is up:
+#
+# * SSL/TLS mode Full. The origin is plain HTTP over the tunnel, which is fine because the tunnel itself
+#   is encrypted, but Flexible would also allow plain HTTP from the browser.
+# * Always Use HTTPS on, and Automatic HTTPS Rewrites on.
+# * A cache rule for /MicroMac/* and /assets/*: cache everything, edge TTL a month. Those files never
+#   change under the same name, and it means the game is served from Cloudflare rather than from home.
+# * A bypass-cache rule for /api/*, or the poll will answer everyone with the first person's counts.
+# * Brotli on. The .woff2 and .png files are already compressed, but the HTML and JS are not.
+#
+# Two things a tunnel does not do for you: it is still your own machine serving the game's files, and
+# whoever can reach the site can download them.

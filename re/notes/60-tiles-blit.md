@@ -69,6 +69,9 @@ Pixel-exact against the per-step VRAM captures of the traces (test/engine/frame.
   10 86a8 (f/10 = round 9 time-trial banners, 3/6/8/9 = 35be no-op). 851f/855a/8634 (90c5 tail) are head-to-head
   only in practice ([26b8] is a car offset only in H2H); in single player the end sequence holds the last frame.
 - Rounds 1/3/5 water: fn 8996 rewrites tile 0 from its copy at ds:3ee3 rotated by ((camX & 0x1f) >> 1, (camY & 0x1f) >> 1).
+  This is the one surface phased on the camera instead of placed by it, so the wider views have to add the half of
+  their growth the camera moved back on before taking the phase, or the whole animated ground sits half of it out of
+  step with the map drawn on top (very visible on round 5's tablecloth).
 - Round 8 (fn 8a2b): 3x3 blocks of map words cycle through tile sets 0 / 9 / 0x12 by ([26d3] >> 2) & 3 (phase 3 resets
   the counter); track 2: block at row 68 col 18; track 3: (62,98) (68,90) (80,90) (86,90) (104,90) (110,90); track 1 none.
 - Round 9 banners (states 0xF/0x10 -> fn 86d2 -> 9289): car drawn, then the 88x22 image (ds:8ce3 time up, ds:9523
@@ -86,3 +89,35 @@ Pixel-exact against the per-step VRAM captures of the traces (test/engine/frame.
   two-file trace layout (cars_/glob_) was being expanded into one buffer with zeros between the car structs and the
   globals, wiping the AI direction tables (ds:18fb/191b) and checkpoint windows (ds:1feb) before the replayed step.
   All 21 frames are exact.
+
+## The viewport (port only)
+
+Every number that described the 256x200 window used to be a literal spread through the renderer and the
+physics. They now come from one place, `src/engine/viewport.ts`, derived from a width and a height:
+
+| field | at the original size | where it was |
+|---|---|---|
+| `stride` | 0x110 | bytes per back-buffer row (width + a 16 px margin for the fine scroll) |
+| `cols` / `rows` | 17 / 14 | the tile loop at 9107, one more than the view needs |
+| `origin` | 0x1110 | the top-left visible pixel, row 16 column 16 |
+| `bufSize` / `mask` | 0x10000 / 0xFFFF | segment 6D78 and its 16-bit wrap |
+| `clipH` | 0xE0 | fn 0630: 200 visible rows plus a 24 px car |
+| `overflowDi` | 0xE590 | where fn 0630 parks a sprite clipped at the bottom, one row below the copy |
+| `halfW` / `halfH` | 0x80 / 0x64 | the per-car camera anchors written at fn 53bc |
+| `h2hX` / `h2hY` | 0xE8 / 0xB0 | fn 4fd1's "the cars are too far apart" test: width - 24, height - 24 |
+| `outWidth` / `outX` | 320 / 32 | fn 92bc's copy into mode 13h |
+
+`DOS_VIEWPORT` reproduces all of them exactly and is the default, so the golden captures still decide what
+is correct; `test/engine/viewport.test.ts` pins every value.
+
+Two derivations are load-bearing. `bufSize` is the next power of two that holds `origin + (height+1)*stride`,
+which at the original size lands on **0x10000 exactly**, so the wrap-around the original relies on is
+preserved rather than approximated. And `clipH` is `height + 24`, **not** the buffer's capacity: the two
+agree at 256x200, but the capacity formula grows with the width and would silently extend the window
+downwards.
+
+Widening works at all because the world is a torus and the camera has no clamp, so there is always more map.
+`test/engine/widescreen.test.ts` renders the same frozen state at 256x200 and at 384x200 with the camera
+moved half the extra width to the left, and requires the shared columns to be identical: the wider view adds
+pixels without moving any. The HUD is the exception, and deliberately so: it is anchored to the left edge of
+the view, so it travels with it.

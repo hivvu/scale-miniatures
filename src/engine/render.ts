@@ -6,6 +6,7 @@
  */
 import { DataSegment, s16 } from './memory';
 import { CARS } from './race';
+import { DOS_VIEWPORT, type Viewport } from './viewport';
 
 export interface RenderSources {
   ds: DataSegment;
@@ -17,6 +18,8 @@ export interface RenderSources {
   vehicle: Uint8Array;
   /** Extra animation frames as at segment 5D78: VH0 image from 0x1440 (12 x 24x24) or 0x3840 in round 9 (5 x 40x40). */
   extra?: Uint8Array | undefined;
+  /** How much of the world to draw. Defaults to the original's 256x200; see engine/viewport.ts. */
+  viewport?: Viewport | undefined;
 }
 
 /** Race init (fn 37fc, 397f..39e6): in GAME1 rounds 2 and 3 the game marks tile words of "overhead" tiles as
@@ -36,12 +39,15 @@ export function applyPriorityFlags(mapWords: Uint16Array, round: number, game1 =
   }
 }
 
-const STRIDE = 0x110;
-const BUF = 0x10000;
-
 export class RaceRenderer {
-  /** Back buffer (segment 6D78). */
-  readonly back = new Uint8Array(BUF);
+  /** Back buffer (segment 6D78 at the original size). */
+  readonly back: Uint8Array;
+  readonly vp: Viewport;
+  /** Cached from the viewport: these are read in the innermost blit loops. */
+  private readonly stride: number;
+  private readonly mask: number;
+  private readonly origin: number;
+  private readonly bufSize: number;
   /** cs:[8994]: fine x residue (0..3) applied when copying to VRAM. */
   fineX = 0;
   private deferred: { di: number; tile: number }[] = [];
@@ -53,7 +59,17 @@ export class RaceRenderer {
     readonly banner?: { src: number; x: number; y: number } | undefined;
   } | undefined;
 
-  constructor(private readonly src: RenderSources) {}
+  constructor(private readonly src: RenderSources) {
+    this.vp = src.viewport ?? DOS_VIEWPORT;
+    this.back = new Uint8Array(this.vp.bufSize);
+    this.stride = this.vp.stride;
+    this.mask = this.vp.mask;
+    this.origin = this.vp.origin;
+    this.bufSize = this.vp.bufSize;
+  }
+
+  /** Screen (x, y) to a back-buffer offset. */
+  private at(x: number, y: number): number { return this.origin + y * this.stride + x; }
 
   /** fn 90c5 body (called when [2638] == 1). Returns the 320x200 frame (A000 image).
    *  `sideEffects` is Race.renderSideEffects: the state changes fn 90c5 makes (skid/foam emitters, state handlers,
@@ -79,8 +95,12 @@ export class RaceRenderer {
     const d = this.src.ds;
     const round = d.r8(0x28BF);
     if (round === 1 || round === 3 || round === 5) {
-      // fn 8996: tile 0 (water) = its saved copy at ds:3ee3 rotated by ((camX & 0x1f) >> 1, (camY & 0x1f) >> 1)
-      const dx = (d.r16(0x264A) & 0x1F) >> 1, dy = (d.r16(0x264C) & 0x1F) >> 1;
+      // fn 8996: tile 0 (water) = its saved copy at ds:3ee3 rotated by ((camX & 0x1f) >> 1, (camY & 0x1f) >> 1).
+      // This is the one thing phased on the camera instead of placed by it, so a bigger view has to put the
+      // camera back where the original's would be first: half the extra height is not a multiple of 16, and
+      // without this the whole animated surface sits half of it out of step with the map drawn on top.
+      const cx = (d.r16(0x264A) + this.vp.camOffsetX) & 0xFFFF, cy = (d.r16(0x264C) + this.vp.camOffsetY) & 0xFFFF;
+      const dx = (cx & 0x1F) >> 1, dy = (cy & 0x1F) >> 1;
       for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c++) this.src.banks[((r + dy) & 0xF) * 16 + ((c + dx) & 0xF)] = d.m[0x3EE3 + r * 16 + c]!;
     } else if (round === 2) {
       const phase = ((d.r16(0x26D1) + 1) >> 2) & 3;
@@ -104,28 +124,28 @@ export class RaceRenderer {
     const d = this.src.ds;
     const camX = d.r16(0x264A), camY = d.r16(0x264C);
     let dl = (camX >> 4) & 0xFF;                   // first tile column (mod 256, wraps at 0xC0)
-    const dh = (dl + 0x11) & 0xFF;                 // 17 columns
-    let di = 0x10 - (camX & 0xF);
+    const dh = (dl + this.vp.cols) & 0xFF;         // one column more than the view needs
+    let di = this.vp.margin - (camX & 0xF);
     let bl = (camY >> 4) & 0xFF;                   // first tile row
-    const bh = (bl + 0x0E) & 0xFF;                 // 14 rows
-    const yoff = 0x10 - (camY & 0xF);
-    di = (di + yoff * STRIDE) & 0xFFFF;
+    const bh = (bl + this.vp.rows) & 0xFF;         // one row more than the view needs
+    const yoff = this.vp.margin - (camY & 0xF);
+    di = (di + yoff * this.stride) & this.mask;
     this.fineX = di & 3;
-    di &= 0xFFFC;
+    di -= this.fineX;                               // was `di &= 0xfffc`: identical at 16 bits, correct at any buffer size
     let col = dl, row = bl;                        // map indices (0..191)
     this.deferred = [];
     const rowStart = (r: number): number => (r % 192) * 192;
     for (;;) {
       let colDi = di;
-      for (let c = 0; c < 17; c++) {
+      for (let c = 0; c < this.vp.cols; c++) {
         const mapCol = (col + c) % 192;
         const word = this.src.mapWords[rowStart(row) + mapCol]!;
         const tile = word & 0x7FFF;
         if (word & 0x8000) this.deferred.push({ di: colDi, tile });
         this.blitTile(tile, colDi);
-        colDi = (colDi + 16) & 0xFFFF;
+        colDi = (colDi + 16) & this.mask;
       }
-      di = (di + 16 * STRIDE) & 0xFFFF;
+      di = (di + 16 * this.stride) & this.mask;
       row = (row + 1) % 192;
       bl = (bl + 1) & 0xFF;
       if (bl === bh) break;
@@ -137,9 +157,9 @@ export class RaceRenderer {
     const base = tile * 256;
     if (base + 256 > this.src.banks.length) return;   // stale memory in the original; nothing sensible to copy
     for (let y = 0; y < 16; y++) {
-      const dst = (di + y * STRIDE) & 0xFFFF;
-      if (dst + 16 <= BUF) this.back.set(this.src.banks.subarray(base + y * 16, base + y * 16 + 16), dst);
-      else for (let x = 0; x < 16; x++) this.back[(dst + x) & 0xFFFF] = this.src.banks[base + y * 16 + x]!;
+      const dst = (di + y * this.stride) & this.mask;
+      if (dst + 16 <= this.bufSize) this.back.set(this.src.banks.subarray(base + y * 16, base + y * 16 + 16), dst);
+      else for (let x = 0; x < 16; x++) this.back[(dst + x) & this.mask] = this.src.banks[base + y * 16 + x]!;
     }
   }
 
@@ -151,7 +171,7 @@ export class RaceRenderer {
       if (base + 256 > this.src.banks.length) continue;
       for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
         const px = this.src.banks[base + y * 16 + x]!;
-        if (px !== 0) this.back[(di + y * STRIDE + x) & 0xFFFF] = px;
+        if (px !== 0) this.back[(di + y * this.stride + x) & this.mask] = px;
       }
     }
   }
@@ -297,26 +317,26 @@ export class RaceRenderer {
         let x = s16(d.r16(p + ox) - d.r16(0x264A)); if (x <= -8) x += 0xC00;
         let y = s16(d.r16(p + oy) - d.r16(0x264C)); if (y <= -8) y += 0xC00;
         x -= 4; y -= 4;                                        // fn 8cd0
-        if (x < -0x17 || x > 0x100 || y < -0x17 || y > 0xC8) continue;   // fn 8ce4 (no clipping, just a bounds test)
-        const di = (x + y * STRIDE + 0x1110 - this.fineX) & 0xFFFF;
+        if (x < -0x17 || x > this.vp.width || y < -0x17 || y > this.vp.height) continue;   // fn 8ce4 (no clipping, just a bounds test)
+        const di = (this.at(x, y) - this.fineX) & this.mask;
         this.blitFromDs(img, di, 8, 8, 0);
       }
     }
   }
 
   /** fn 8cd0 / 8ce4: 8x8 colour-0-transparent bit at world (x, y) minus camera, centred (-4); fn 8d36 / 8d4a draw the
-   *  same shape as a colour-0 shadow. Bounds test only (-0x17..0x100 / -0x17..0xC8), no clipping. */
+   *  same shape as a colour-0 shadow. Bounds test only against the view, no clipping. */
   private bit8(img: number, wx: number, wy: number, shadow = false): void {
     const d = this.src.ds;
     let x = s16(wx - d.r16(0x264A)); if (x <= -8) x += 0xC00;
     let y = s16(wy - d.r16(0x264C)); if (y <= -8) y += 0xC00;
     x -= 4; y -= 4;
-    if (x < -0x17 || x > 0x100 || y < -0x17 || y > 0xC8) return;
-    let di = (x + y * STRIDE + 0x1110 - this.fineX) & 0xFFFF;
+    if (x < -0x17 || x > this.vp.width || y < -0x17 || y > this.vp.height) return;
+    let di = (this.at(x, y) - this.fineX) & this.mask;
     const m = this.src.ds.m;
     for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) { const px = m[(img + r * 8 + c) & 0xFFFF]!; if (px !== 0) this.back[(di + c) & 0xFFFF] = shadow ? 0 : px; }
-      di = (di + STRIDE) & 0xFFFF;
+      for (let c = 0; c < 8; c++) { const px = m[(img + r * 8 + c) & 0xFFFF /* ds */]!; if (px !== 0) this.back[(di + c) & this.mask] = shadow ? 0 : px; }
+      di = (di + this.stride) & this.mask;
     }
   }
 
@@ -355,7 +375,7 @@ export class RaceRenderer {
   /** fn 35f0 at 3760: the Paused! banner (PH0 sprite 0x9d63) over the frame that is already on screen. */
   pauseFrame(): Uint8Array {
     this.src.ds.w8(0x26CF, 0);
-    this.banner(0x9D63, 0x80, 0x3C);
+    this.banner(0x9D63, this.vp.halfW, 0x3C);
     return this.copyToVram();
   }
 
@@ -376,56 +396,56 @@ export class RaceRenderer {
     if (d.r8(0x28BF) === 9) {                            // round 9: elapsed time [26c8] >> 4, three digits (8ff5)
       let v = d.r16(0x26C8) >> 4;
       const lo = v % 10; v = Math.floor(v / 10);
-      this.digit(lo, 0x19B0);
-      if (lo !== 0) this.digit(10, 0x19A8);                 // 900b tests cx after fn 905f shifted it left by 7: any non-zero digit
-      this.digit(v % 10, 0x19A0); v = Math.floor(v / 10);
-      this.digit(v % 10, 0x1998);
+      this.digit(lo, this.at(32, 8));
+      if (lo !== 0) this.digit(10, this.at(24, 8));                 // 900b tests cx after fn 905f shifted it left by 7: any non-zero digit
+      this.digit(v % 10, this.at(16, 8)); v = Math.floor(v / 10);
+      this.digit(v % 10, this.at(8, 8));
       return;
     }
     if (d.r16(0x2656) === 2) {                           // head to head: leader lap digit + 8-segment tug bar
       const bx = d.r16(0x2678);
-      this.digit(d.r16(bx + 0x12ED), 0x1118);
+      this.digit(d.r16(bx + 0x12ED), this.at(8, 0));
       const score = d.rs16(0x26B4);
-      for (let i = 8, di = 0x2210; i >= 1; i--, di += 0x1100) this.blitHud(i > score ? 0x5AE3 : 0x59E3, di, 16, 16);
+      for (let i = 8; i >= 1; i--) this.blitHud(i > score ? 0x5AE3 : 0x59E3, this.at(0, 16 + (8 - i) * 16), 16, 16);
       return;
     }
-    this.digit(d.r16(d.r16(0x2660) + 0x12ED), 0x1118);   // player's laps to go
+    this.digit(d.r16(d.r16(0x2660) + 0x12ED), this.at(8, 0));   // player's laps to go
     for (let i = 0; i < 4; i++) {
-      this.carIcon(d.r16(0x2678 + i * 2), 0x2210 + i * 0x1100);
-      this.digit(i + 1, 0x2220 + i * 0x1100);
+      this.carIcon(d.r16(0x2678 + i * 2), this.at(0, 16 + i * 16));
+      this.digit(i + 1, this.at(16, 16 + i * 16));
     }
   }
 
   /** fn 905f: 8x16 digit n from ds:5463 (128 bytes each). */
-  private digit(n: number, di: number): void { this.blitHud(0x5463 + ((n << 7) & 0xFFFF), di, 8, 16); }
+  private digit(n: number, di: number): void { this.blitHud(0x5463 + ((n << 7) & 0xFFFF /* ds */), di, 8, 16); }
 
   /** fn 903f -> 8dc0: 16x16 car icon (ds:5363, or ds:5be3 once the car has finished) recoloured by [1252]. */
   private carIcon(bx: number, di: number): void {
     const m = this.src.ds.m;
     const src = this.src.ds.r16(bx + 0x12ED) !== 0 ? 0x5363 : 0x5BE3, add = this.src.ds.r8(bx + 0x1252);
-    di = (di - this.fineX) & 0xFFFF;
+    di = (di - this.fineX) & this.mask;
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
       let px = m[src + y * 16 + x]!;
       if (px === 0) continue;
       const nib = px & 0xF;
       if (nib === 1 || nib === 2) px = (px + add) & 0xFF;
-      this.back[(di + y * STRIDE + x) & 0xFFFF] = px;
+      this.back[(di + y * this.stride + x) & this.mask] = px;
     }
   }
 
   /** fn 8d09: screen-pinned colour-0-transparent blit from the data segment. */
-  private blitHud(src: number, di: number, w: number, h: number): void { this.blitFromDs(src, (di - this.fineX) & 0xFFFF, w, h, 0); }
+  private blitHud(src: number, di: number, w: number, h: number): void { this.blitFromDs(src, (di - this.fineX) & this.mask, w, h, 0); }
 
   /** Plain colour-0-transparent blit from the data segment (fn 8ca4 / 8d0a). */
   private blitFromDs(src: number, di: number, w: number, h: number, skip: number): void {
     const m = this.src.ds.m;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        const px = m[(src++) & 0xFFFF]!;
-        if (px !== 0) this.back[(di + x) & 0xFFFF] = px;
+        const px = m[(src++) & 0xFFFF /* ds */]!;
+        if (px !== 0) this.back[(di + x) & this.mask] = px;
       }
       src += skip;
-      di = (di + STRIDE) & 0xFFFF;
+      di = (di + this.stride) & this.mask;
     }
   }
 
@@ -436,20 +456,20 @@ export class RaceRenderer {
       w += x; if (w <= 0) return undefined;
       srcOff -= x; skip = -x; x = 0;
     } else {
-      if (x >= 0x100) return undefined;
-      if (x + w > 0x100) { const over = x + w - 0x100; w -= over; skip = over; }
+      if (x >= this.vp.width) return undefined;
+      if (x + w > this.vp.width) { const over = x + w - this.vp.width; w -= over; skip = over; }
     }
     let di: number;
     if (y < 0) {
       h += y; if (h <= 0) return undefined;
       srcOff += (-y) * (w + skip);
-      di = x + 0x1110;
+      di = this.origin + x;
     } else {
-      if (y >= 0xE0) return undefined;
-      if (y + h > 0xE0) { h = 0xE0 - y; di = 0xE590 + x; }    // quirk: drawn below the visible rows
-      else di = x + y * STRIDE + 0x1110;
+      if (y >= this.vp.clipH) return undefined;
+      if (y + h > this.vp.clipH) { h = this.vp.clipH - y; di = this.vp.overflowDi + x; }   // quirk: below the visible rows
+      else di = this.at(x, y);
     }
-    di = (di - this.fineX) & 0xFFFF;
+    di = (di - this.fineX) & this.mask;
     return { di, skip, w, h, srcOff };
   }
 
@@ -525,21 +545,22 @@ export class RaceRenderer {
         if (px !== 0) {
           if (mode === 'shadow') px = 0;
           else if (mode === 'recolour' && (px & 0xF) <= 2) px = (px + colour) & 0xFF;
-          this.back[(di + x) & 0xFFFF] = px;
+          this.back[(di + x) & this.mask] = px;
         }
       }
       src += skip;
-      di = (di + STRIDE) & 0xFFFF;
+      di = (di + this.stride) & this.mask;
     }
   }
 
   // ---------------------------------------------------------------- fn 92bc
   private copyToVram(): Uint8Array {
-    const out = new Uint8Array(320 * 200);
-    let si = (0x1110 - this.fineX) & 0xFFFF;
-    for (let row = 0; row < 200; row++) {
-      for (let x = 0; x < 256; x++) out[row * 320 + 0x20 + x] = this.back[(si + x) & 0xFFFF]!;
-      si = (si + STRIDE) & 0xFFFF;
+    const { outWidth, outX, width, height } = this.vp;
+    const out = new Uint8Array(outWidth * height);
+    let si = (this.origin - this.fineX) & this.mask;
+    for (let row = 0; row < height; row++) {
+      for (let x = 0; x < width; x++) out[row * outWidth + outX + x] = this.back[(si + x) & this.mask]!;
+      si = (si + this.stride) & this.mask;
     }
     return out;
   }

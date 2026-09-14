@@ -6,13 +6,22 @@ import { unpackPklite } from '../../data/pklite';
 import { setupRace, raceFileNames, type RaceFiles } from '../../engine/setup';
 import { Race } from '../../engine/race';
 import { RaceRenderer } from '../../engine/render';
+import { DOS_VIEWPORT, makeViewport } from '../../engine/viewport';
 
 const status = document.querySelector('#status') as HTMLElement;
 const canvas = document.querySelector('#screen') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
-const off = document.createElement('canvas'); off.width = 320; off.height = 200;
+const params = new URLSearchParams(location.search);
+const VIEWPORT = ((): typeof DOS_VIEWPORT => {
+  try { return makeViewport(Number(params.get('width') ?? 256), Number(params.get('height') ?? 200)); }
+  catch { return DOS_VIEWPORT; }
+})();
+canvas.width = VIEWPORT.outWidth; canvas.height = VIEWPORT.height;
+canvas.style.width = `${VIEWPORT.outWidth * 3}px`;
+canvas.style.height = 'auto';
+const off = document.createElement('canvas'); off.width = VIEWPORT.outWidth; off.height = VIEWPORT.height;
 const octx = off.getContext('2d')!;
-const img = octx.createImageData(320, 200);
+const img = octx.createImageData(VIEWPORT.outWidth, VIEWPORT.height);
 
 // P1 keys as in SETTINGS.DAT: A left, D right, W up (accelerate), S down (brake), Alt fire
 const KEYS: Record<string, number> = { KeyA: 0x80, ArrowLeft: 0x80, KeyD: 0x40, ArrowRight: 0x40, KeyW: 0x20, ArrowUp: 0x20,
@@ -24,8 +33,8 @@ window.addEventListener('blur', () => { keys = 0; });
 
 async function main(): Promise<void> {
   status.textContent = 'loading…';
-  const files = await GameFiles.fromHttp('/MicroMac/', '/manifest.json');
-  const q = new URLSearchParams(location.search);
+  const files = await GameFiles.fromServer();
+  const q = params;
   const round = Number(q.get('round') ?? 2), track = Number(q.get('track') ?? 1);
   const names = raceFileNames(round, track);
   document.querySelector('h1')!.textContent = `Round ${round}, track ${track} (engine test)`;
@@ -40,10 +49,10 @@ async function main(): Promise<void> {
     ph0: await files.read(names['ph0']!), vh0: await files.read(names['vh0']!), pr,
   };
   // Challenge, player 1 on keys 1 (character 10), three AI cars (character 6), as the first Challenge race is set up
-  const { ds, mapWords, banks, vehicle, extra, palette } = setupRace(raceFiles, { round, track, challengeIndex: 0, mode: 1, inputs: [4, 6, 6, 6], characters: [10, 6, 6, 6] });
+  const { ds, mapWords, banks, vehicle, extra, palette } = setupRace(raceFiles, { round, track, challengeIndex: 0, mode: 1, inputs: [4, 6, 6, 6], characters: [10, 6, 6, 6], viewport: VIEWPORT });
   const pal = paletteToRgba(decodePalette(palette));
-  const race = new Race(ds);
-  const renderer = new RaceRenderer({ ds, mapWords, banks, vehicle, extra });
+  const race = new Race(ds, VIEWPORT);
+  const renderer = new RaceRenderer({ ds, mapWords, banks, vehicle, extra, viewport: VIEWPORT });
   renderer.race = race;
 
   const TICK = 1 / 70.086;                    // VGA frame = game tick
@@ -52,7 +61,7 @@ async function main(): Promise<void> {
   let acc = 0, last = performance.now(), ticks = 0, steps = 0, frame: Uint8Array | undefined;
   const present = (fb: Uint8Array): void => {
     const out = new Uint32Array(img.data.buffer);
-    for (let i = 0; i < 64000; i++) out[i] = pal[fb[i]!]!;
+    for (let i = 0; i < VIEWPORT.outWidth * VIEWPORT.height; i++) out[i] = pal[fb[i]!]!;
     octx.putImageData(img, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(off, 0, 0, canvas.width, canvas.height);

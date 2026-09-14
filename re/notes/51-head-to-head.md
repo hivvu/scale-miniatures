@@ -94,3 +94,15 @@ new request `'race'` where the original calls fn 216c, and `src/app/game/main.ts
 resumes them. `src/engine/screens.ts` has the drawing (fn 240a / 2481 / 2216 / 256e), `src/engine/race.ts`
 the race side and `src/engine/render.ts` the banner blit. The page aliases the arrows onto player 1's keys
 only while `[03f3] != 1`, so in a two-player game the arrows are player 2's own keys again.
+
+## The scoring area and the viewport
+
+The test that decides a car has been left behind is not a distance picked out of the air: fn 4fd1 compares
+the gap between the two cars against **0xE8 across and 0xB0 down**, which are `256 - 24` and `200 - 24`,
+the view minus a car sprite. It means exactly "both cars still fit inside the window", which is why the
+camera freezes on its last valid target while the point is scored.
+
+In the port those two numbers come from the viewport (`h2hX` / `h2hY`), so a wider view really does give a
+larger area to play in: at 384x224 the cars may drift 0x168 apart across and 0xC8 down. Matches then take
+longer, and vertical separation stops being the easy way to score. `test/engine/h2h.test.ts` checks that a
+point still gets scored at the wider size and that it takes more steps than at the original one.

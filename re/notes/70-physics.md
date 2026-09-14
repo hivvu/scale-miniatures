@@ -112,6 +112,10 @@ Target [2646],[2648] = leader car ([27b7 + [27b5]*2] selects; H2H = midpoint of 
 minus the anchors [1262],[126e]. Camera [264a],[264c] moves toward the target by [264e]/[2650] per axis; when the
 remaining distance is <= the step (or >= 1001, i.e. a wrap) it snaps and the step becomes 0x32 (50). At race start
 the step is 4 (fn 7759) which gives the slow opening pan. [137e] per car = 1 when both steps are 50 (camera settled).
+The >= 1001 case is not a special case at all: the two words are compared as plain 16-bit numbers, so it fires
+whenever the camera and its target sit on opposite sides of the world seam. Which tracks that happens on is a
+property of where fn 3c09 seeded the camera, so a wider view (whose camera sits half the growth away) has to take
+that decision on the camera the original would have had, or tracks that pan in the original jump instead.
 
 ## Jumps (fn 7429, per car)
 [12d6] height, [12d4] vertical speed: height += vspeed >> 2, vspeed -= 1 each tick; on landing (height <= 0)

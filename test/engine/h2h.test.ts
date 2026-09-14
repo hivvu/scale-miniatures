@@ -10,6 +10,7 @@ import { unpackPklite } from '../../src/data/pklite';
 import { setupRace, raceFileNames, type RaceFiles } from '../../src/engine/setup';
 import { Race } from '../../src/engine/race';
 import { RaceRenderer } from '../../src/engine/render';
+import { DOS_VIEWPORT, makeViewport, type Viewport } from '../../src/engine/viewport';
 
 const ROOT = process.cwd();
 const DATA = process.env['MM_DATA_DIR'] ?? join(ROOT, 'MicroMac');
@@ -17,7 +18,7 @@ const have = existsSync(join(DATA, 'MICRO.EXE')) && existsSync(join(DATA, 'GAME1
 const read = (n: string): Uint8Array => new Uint8Array(readFileSync(join(DATA, n)));
 
 describe.skipIf(!have)('head to head race', () => {
-  function build(round: number, track: number): { race: Race; renderer: RaceRenderer } {
+  function build(round: number, track: number, vp: Viewport = DOS_VIEWPORT): { race: Race; renderer: RaceRenderer } {
     const names = raceFileNames(round, track);
     const exe = unpackPklite(read('MICRO.EXE')).image;
     const settingsPath = existsSync(join(ROOT, 'build/dos-work/SETTINGS.DAT'))
@@ -31,10 +32,10 @@ describe.skipIf(!have)('head to head race', () => {
       pr: ['pr0', 'pr1', 'pr2'].map(k => names[k]!).filter(n => existsSync(join(DATA, n))).map(read),
     };
     const assets = setupRace(files, {
-      round, track, challengeIndex: 1, mode: 2, inputs: [4, 6, 6, 6], characters: [3, 5, 6, 6],
+      round, track, challengeIndex: 1, mode: 2, inputs: [4, 6, 6, 6], characters: [3, 5, 6, 6], viewport: vp,
     });
-    const race = new Race(assets.ds);
-    const renderer = new RaceRenderer({ ds: assets.ds, mapWords: assets.mapWords, banks: assets.banks, vehicle: assets.vehicle, extra: assets.extra });
+    const race = new Race(assets.ds, vp);
+    const renderer = new RaceRenderer({ ds: assets.ds, mapWords: assets.mapWords, banks: assets.banks, vehicle: assets.vehicle, extra: assets.extra, viewport: vp });
     renderer.race = race;
     return { race, renderer };
   }
@@ -81,4 +82,34 @@ describe.skipIf(!have)('head to head race', () => {
     expect(d.r16(0x26C6)).toBe(2);
     expect(d.r16(0x26C4)).toBe(0x164);                   // fn 76ee: the winner's car record
   });
+
+  /**
+   * The point of widening: the scoring area is "both cars still fully inside the window", so it grows with
+   * the view. At 384x224 the cars may drift 0x168 apart across and 0xd0 down instead of 0xe8 and 0xb0, which
+   * is why the budget here is larger than the 6000 steps the same race needs at the original size.
+   */
+    it('scores on the wider thresholds, and takes longer to do it', () => {
+      const wide = makeViewport(384, 224);
+      expect(wide.h2hX).toBe(0x168);
+      expect(wide.h2hY).toBe(0xC8);
+
+      const stepsToFirstPoint = (vp: Viewport, budget: number): number | undefined => {
+        const { race, renderer } = build(1, 1, vp);
+        race.raceLoopInit();
+        for (let step = 0; step < budget && !race.over; step++) {
+          race.stepPhysics(0);
+          if (race.over) break;
+          if (race.rendersThisStep) renderer.render(() => race.renderSideEffects());
+          race.stepPost();
+          race.sounds.length = 0;
+          if (race.d.r16(0x26BA) === 0x40) return step;
+        }
+        return undefined;
+      };
+      const narrow = stepsToFirstPoint(DOS_VIEWPORT, 6000);
+      const widened = stepsToFirstPoint(wide, 20000);
+      expect(narrow).toBeDefined();
+      expect(widened).toBeDefined();
+      expect(widened!).toBeGreaterThan(narrow!);            // more room means longer before a car is lost
+    });
 });

@@ -1,0 +1,37 @@
+# systemd unit for the poll service.
+#
+#   sudo cp server/poll.service /etc/systemd/system/scale-miniatures-poll.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now scale-miniatures-poll
+#   journalctl -u scale-miniatures-poll -f
+#
+# Adjust User, WorkingDirectory and the two paths. Nothing here needs root.
+
+[Unit]
+Description=Scale Miniatures poll
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/srv/scale-miniatures
+ExecStart=/usr/bin/node server/poll.mjs
+Restart=on-failure
+RestartSec=5
+
+Environment=SM_POLL_PORT=8787
+Environment=SM_POLL_FILE=/var/lib/scale-miniatures/votes.ndjson
+# Set this when a reverse proxy is in front, so the rate limit sees real addresses and not the proxy's.
+Environment=SM_POLL_PROXY=1
+# Only needed when the page is served from a different origin than the API. Behind one proxy it is not.
+#Environment=SM_POLL_ORIGIN=https://games.example.lan
+
+# It writes one file and nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/scale-miniatures
+
+[Install]
+WantedBy=multi-user.target

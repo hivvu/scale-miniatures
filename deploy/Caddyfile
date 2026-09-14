@@ -1,0 +1,36 @@
+# The web half of the stack, inside the container. It listens on plain HTTP on port 80 and is never
+# published to the host: cloudflared reaches it over the compose network, so no port on the machine is
+# taken and nothing is exposed to the network the machine sits on.
+
+:80 {
+	encode zstd gzip
+	root * /srv/site
+
+	# The poll service, the other container in the stack.
+	handle /api/* {
+		reverse_proxy poll:8787
+	}
+
+	# The game's own files, mounted read-only from outside the site directory so that rebuilding the site
+	# cannot touch them and copying the site cannot carry them along.
+	handle /MicroMac/* {
+		root * /srv/game
+		uri strip_prefix /MicroMac
+		file_server
+	}
+
+	handle {
+		# Hashed file names, so they can be cached until the heat death of the universe.
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /fonts/* Cache-Control "public, max-age=31536000, immutable"
+		# The entry points are not hashed and must not be.
+		header /index.html Cache-Control "no-cache"
+		header /*.html Cache-Control "no-cache"
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

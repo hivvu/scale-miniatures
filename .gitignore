@@ -17,6 +17,10 @@ re/dos-tools/
 *.RAW
 MEMDUMP.BIN
 
+# Poll answers from a running instance: local data, never committed
+server/votes.ndjson
+server/*.ndjson
+
 # Tooling
 node_modules/
 dist/

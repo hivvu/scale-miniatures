@@ -83,7 +83,7 @@ for (let r = 1; r <= 9; r++) {
 async function autoload(): Promise<void> {
   $('#status').textContent = 'loading ./MicroMac from the dev server…';
   try {
-    const g = await GameFiles.fromHttp('/MicroMac/', '/manifest.json');
+    const g = await GameFiles.fromServer();
     if (!g.has('GAME1/ROUND1.PAL')) throw new Error('GAME1/ROUND1.PAL not served');
     await loaded(g);
   } catch (e) {

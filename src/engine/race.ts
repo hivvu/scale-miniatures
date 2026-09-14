@@ -4,6 +4,7 @@
  * addresses are relative to CS=1000 of the Ghidra project. See re/notes/70-physics.md and 80-ai-collision.md.
  */
 import { DataSegment, NotImplementedYet, mulfix, s16, s8 } from './memory';
+import { DOS_VIEWPORT, type Viewport } from './viewport';
 import type { SoundPort } from './sound/port';
 
 export const CARS = [0, 0x164, 0x2C8, 0x42C] as const;
@@ -127,7 +128,7 @@ export class Race {
   pauseRender = false;
   /** fn 7cae: three overlapping words in the code segment, so a write to one changes the next. */
   private readonly seed = new Uint8Array([0x45, 0x23, 0x56, 0x26]);
-  constructor(readonly d: DataSegment) {}
+  constructor(readonly d: DataSegment, readonly vp: Viewport = DOS_VIEWPORT) {}
 
   /** fn 7cae: the game's random number generator. */
   random(): number {
@@ -341,8 +342,8 @@ export class Race {
     // head to head end-of-race handling (4be7)
     if (d.r16(0x26B4) === 4) {
       if (d.r16(0x26C2) !== 2) {
-        if (d.r16(0x26C2) === 0) { d.w16(0x26C2, 3); d.w16(0x26BE, 0x158); d.w16(0x26C0, 0x7C); }
-        if (d.r16(0x26BE) === 0x80) {
+        if (d.r16(0x26C2) === 0) { d.w16(0x26C2, 3); d.w16(0x26BE, this.vp.bannerOffRight); d.w16(0x26C0, 0x7C); }
+        if (d.r16(0x26BE) === this.vp.halfW) {
           d.add16(0x26C2, 1);
           if (d.r16(0x26C2) === 0x64) { d.w16(0x26C2, 3); d.add16(0x26BE, -8); }
         } else if (d.rs16(0x26BE) <= -0x58) d.w16(0x26C2, 0xC8);
@@ -465,7 +466,7 @@ export class Race {
           d.w16(bx + cur, d.r16(bx + tgt));
         }
       }
-      d.w16(bx + 0x1262, 0x80); d.w16(bx + 0x126E, 0x64);
+      d.w16(bx + 0x1262, this.vp.halfW); d.w16(bx + 0x126E, this.vp.halfH);   // half the view
     }
     // 53c8: skid sound bookkeeping
     if (d.r16(bx + 0x1282) !== 1) return;
@@ -1083,17 +1084,17 @@ export class Race {
     } else {
       const a = d.r16(0x2660), b = d.r16(0x2662);
       const cx = d.rs16(b + 0x125C); let ax = s16(d.r16(a + 0x125C) - cx);
-      if (ax >= 0xB18) ax -= 0xC00;
-      if (ax <= -0xB18) ax += 0xC00;
-      if (ax > 0xE8 || ax < -0xE8) { if (d.r16(0x2911) !== 2) d.w16(0x2911, 1); }
+      if (ax >= this.vp.h2hWrapX) ax -= 0xC00;
+      if (ax <= -this.vp.h2hWrapX) ax += 0xC00;
+      if (ax > this.vp.h2hX || ax < -this.vp.h2hX) { if (d.r16(0x2911) !== 2) d.w16(0x2911, 1); }
       else {
-        ax = (ax >> 1) + cx - 0x80;
+        ax = (ax >> 1) + cx - this.vp.halfW;
         const cy = d.rs16(b + 0x1268); let dx = s16(d.r16(a + 0x1268) - cy);
-        if (dx >= 0xB50) dx -= 0xC00;
-        if (dx <= -0xB50) dx += 0xC00;
-        if (dx > 0xB0 || dx < -0xB0) { if (d.r16(0x2911) !== 2) d.w16(0x2911, 1); }
+        if (dx >= this.vp.h2hWrapY) dx -= 0xC00;
+        if (dx <= -this.vp.h2hWrapY) dx += 0xC00;
+        if (dx > this.vp.h2hY || dx < -this.vp.h2hY) { if (d.r16(0x2911) !== 2) d.w16(0x2911, 1); }
         else {
-          dx = (dx >> 1) + cy - 0x64;
+          dx = (dx >> 1) + cy - this.vp.halfH;
           if (ax <= -1) ax += 0xC00;
           if (ax >= 0xC00) ax -= 0xC00;
           if (dx <= -1) dx += 0xC00;
@@ -1103,13 +1104,20 @@ export class Race {
       }
     }
     for (const o of [0x137E, 0x14E2, 0x1646, 0x17AA]) d.w16(o, 0);
-    for (const [tgt, cam, step] of [[0x2646, 0x264A, 0x264E], [0x2648, 0x264C, 0x2650]] as const) {
+    // The swoop compares the target and the camera as plain 16-bit numbers, so when the two sit on opposite
+    // sides of the world seam the gap reads as about 0xb00 and the camera jumps the whole way instead of
+    // gliding in. That is what the original does and the traces pin it, but which tracks it happens on
+    // depends on where the seam falls relative to the camera, and a wider view moves the camera off it. So
+    // the decision is taken on the camera the original would have, and only the movement applied here.
+    for (const [tgt, cam, step, off] of [[0x2646, 0x264A, 0x264E, this.vp.camOffsetX],
+                                         [0x2648, 0x264C, 0x2650, this.vp.camOffsetY]] as const) {
       const cx = d.rs16(step);
-      let ax = s16(d.r16(tgt) - d.r16(cam)); let dx = ax;
+      let ax = s16(((d.r16(tgt) + off) % 0xC00) - ((d.r16(cam) + off) % 0xC00)); let dx = ax;
       if (ax <= -1) ax = -ax;
       if (ax > 0x3E8 || ax <= cx) d.w16(step, 0x32);
       else { ax = cx; if (dx <= -1) ax = -ax; dx = ax; }
       d.add16(cam, dx);
+      if (off !== 0) d.w16(cam, (d.rs16(cam) % 0xC00 + 0xC00) % 0xC00);   // a world coordinate again
     }
     if (d.r16(0x2650) === 0x32 && d.r16(0x264E) === 0x32) for (const o of [0x137E, 0x14E2, 0x1646, 0x17AA]) d.w16(o, 1);
   }
@@ -1135,8 +1143,8 @@ export class Race {
     }
     const x = s16(di), y = s16(ax);
     let clipped = false;
-    if (x < 0) { if (x + w <= 0) clipped = true; } else if (x >= 0x100) clipped = true;
-    if (!clipped) { if (y < 0) { if (y + w <= 0) clipped = true; } else if (y >= 0xE0) clipped = true; }
+    if (x < 0) { if (x + w <= 0) clipped = true; } else if (x >= this.vp.logicWidth) clipped = true;
+    if (!clipped) { if (y < 0) { if (y + w <= 0) clipped = true; } else if (y >= this.vp.logicClipH) clipped = true; }
     if (clipped) d.w16(bx + 0x1250, 0);
     else if (this.round === 8) {                              // 7e3a..7e4f: helicopter rotor (fn 843d) advances [1392]
       const st = d.r16(bx + 0x12AE);
@@ -1325,7 +1333,7 @@ export class Race {
     d.add16(0x26BA, -1);
     if (d.r16(0x26BA) !== 0) return;
     if (d.rs16(a + 0x12ED) > 0) d.w16(0x26C2, 1);            // 7669: the banner slides off again
-    d.w16(0x26BE, 0x80); d.w16(0x26C0, 0x7C);
+    d.w16(0x26BE, this.vp.halfW); d.w16(0x26C0, 0x7C);
     d.w16(0x27B5, 0);
     this.fn78f8();
     d.w16(0x2911, 2);
@@ -1380,7 +1388,7 @@ export class Race {
     d.w16(bx + 0x1278, (d.r16(bx + 0x1278) + 8) & 0xFF);
     if (d.rs16(0x26B4) >= 7 || d.rs16(0x26B4) <= 1) return;
     if (d.rs16(bx + 0x12ED) <= 0) return;
-    this.banner = { src: 0x7423, x: 0x80, y: 0x7C };
+    this.banner = { src: 0x7423, x: this.vp.halfW, y: 0x7C };
   }
 
   /** fn 855a: BONUS at a fixed spot, or, on the last point of the match, WINNER sliding down from off-screen. */
@@ -1392,13 +1400,13 @@ export class Race {
     if (this.round === 8) d.w16(bx + 0x1278, (d.r16(bx + 0x1278) + 8) & 0xFF);
     const total = (d.r16(0x26B4) + d.r16(0x26B6)) & 0xFFFF;
     if (total !== 0x0F && total !== 1 && d.r16(0x26C2) !== 0xC8 && d.r16(0x26C2) !== 2) {
-      this.banner = { src: 0x7423, x: 0x80, y: 0x7C };       // 85ac
+      this.banner = { src: 0x7423, x: this.vp.halfW, y: 0x7C };   // 85ac
       return;
     }
     if (d.r16(0x26C2) === 0 || d.r16(0x26C2) === 0xC8) {     // 85c1
-      d.w16(0x26BE, 0x80); d.w16(0x26C0, 0xFFE8); d.w16(0x26C2, 2);
+      d.w16(0x26BE, this.vp.halfW); d.w16(0x26C0, 0xFFE8); d.w16(0x26C2, 2);
     }
-    d.w16(0x26BE, 0x80);
+    d.w16(0x26BE, this.vp.halfW);
     d.add16(0x26C0, 8);
     if (d.rs16(0x26C0) >= 0x7C) d.w16(0x26C0, 0x7C);
     this.snd(0x0A, 0x10);
@@ -1521,8 +1529,8 @@ export class Race {
     const d = this.d;
     this.snd(5, timeUp ? 0x10 : 0x0F);
     this.fn7d73Visibility(bx);
-    if (d.r16(0x26C2) === 0) { d.w16(0x26BE, 0x80); d.w16(0x26C0, 0); d.w16(0x26C2, 0x3E8); }
-    d.w16(0x26BE, 0x80);
+    if (d.r16(0x26C2) === 0) { d.w16(0x26BE, this.vp.halfW); d.w16(0x26C0, 0); d.w16(0x26C2, 0x3E8); }
+    d.w16(0x26BE, this.vp.halfW);
     if (d.r16(0x26C0) <= 0x7C) { d.w16(0x26C6, 2); d.add16(0x26C0, 8); }
     d.w16(0x291D, timeUp ? 1 : 0);
   }

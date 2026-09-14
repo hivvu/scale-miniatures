@@ -27,6 +27,49 @@ do not own Micro Machines, this repository is of no use to you.
 What is missing: the PC speaker driver (`DRIVER2.BIN`), so the SPEAKER option is stepped over rather than
 offered as silence.
 
+## Widescreen
+
+The game draws 256x200 into the middle of the VGA screen and wastes 32 columns on each side. The port can
+draw more of the track instead. There are two ways to ask for it, and both are remembered: the **View** box
+above the canvas, or `F8` on the game's own GAME OPTIONS screen. `F8` is the one line on that screen the
+original has not got; it is drawn with the game's own font in the row F7 would have taken, and it steps
+through the sizes the way F1 to F4 step through theirs. It names them rather than giving the numbers,
+because the value column of that screen holds seven capitals and no more (the longest the game itself puts
+there is `BLASTER`):
+
+| | | |
+|---|---|---|
+| `DOS` | 256 x 200 | what the game shipped as |
+| `VGA` | 320 x 200 | the rest of the VGA screen |
+| `TALL` | 320 x 224 | and taller |
+| `WIDE` | 384 x 224 | |
+| `WIDEST` | 448 x 240 | |
+
+Each one shows strictly more of the track than the one before it.
+
+This is worth more than a bigger picture in **Head to Head**. A point is scored there when one car gets far
+enough ahead that the other is left behind, and the original decides that with two numbers, 232 and 176,
+which are the view's width and height minus a car. It means "both cars still fit on screen". Widen the view
+and the area you have to play in genuinely grows with it, so matches run longer and getting away from
+someone takes real distance.
+
+It is off by default, and everything the captures check still runs at the original size. What proves the
+widening is honest is a test that renders the same frozen moment twice, once narrow and once wide with the
+camera moved half the extra width across, and requires every column the two views share to be identical:
+the wider view adds pixels without moving any. The one thing that does move is the HUD, which stays pinned
+to the left edge of the view. Menus and the intro are fixed-size artwork and cannot widen, so they sit
+centred in the larger canvas.
+
+One consequence worth stating: the flag that says whether a car was drawn also feeds the AI's catch-up
+boost, so in a wider view the opponents stay "on screen" for longer, their rubber band engages later, and
+races are a little easier.
+
+There is a **Fullscreen** button next to it, and double-clicking the picture does the same. The canvas is
+scaled by whole numbers only, so every game pixel stays exactly the same size as its neighbours and the
+leftover space stays black; a fractional scale would make some pixels a row wider than others, which on
+320x200 artwork is very visible. `Esc` leaves fullscreen, and a second press then does the game's own Esc:
+the first one is swallowed so that leaving fullscreen does not also back you out of the menu you were in.
+
 ## What you need
 
 * **Node.js 20, or 22 and up** (vite 6 and vitest 3 both skip Node 21).
@@ -96,12 +139,54 @@ npm run dev
 
 Then open:
 
-* **http://localhost:3000/game.html** for the game.
+* **http://localhost:3000/** for the front page, which loads the game when you ask it to.
+* http://localhost:3000/game.html for the game on its own, with no page around it.
 * http://localhost:3000/race.html?round=2&track=1 to drop straight into one track.
-* http://localhost:3000/viewer.html to browse the decoded assets (this one also takes a folder picker).
+* http://localhost:3000/viewer.html to browse the decoded assets.
 
 `npm test` runs the test suite and `npm run typecheck` the compiler. Only the tests want the game files,
 and they skip cleanly without them; point them at another copy with `MM_DATA_DIR=/path/to/MicroMac`.
+
+## Hosting it somewhere
+
+`npm run build` writes a static site to `dist/`. It needs no Node at runtime and any web server will do.
+Deploying under a subfolder works too, as long as the build knows: `SM_BASE=/micromachines/ npm run build`,
+and everything the pages ask for follows that base.
+
+Two things live outside that build, on purpose.
+
+**The game itself.** The dev server mirrors your `MicroMac` folder at `/MicroMac/`, and it is the only thing
+that does: the plugin is `apply: 'serve'`, so a build contains no game data at all. A host that serves that
+same path hands the game straight to whoever opens the page, and the front page then starts on its own; a
+host that does not makes the page ask each visitor to point at their own installed copy, which their browser
+reads locally and never uploads. Both paths work and the page picks whichever it finds. Serving the files is
+distribution rather than a private copy once the site is reachable from outside your own network, and the
+game is not out of copyright: it was Codemasters' and is Electronic Arts' now. **Keep that folder outside
+`dist/`**, because a rebuild empties `dist/`.
+
+**The poll** on the front page, if you want it. `server/poll.mjs` is one dependency-free Node file that
+answers `/api/poll`; see [server/README.md](server/README.md).
+
+Worked examples are in [`deploy/`](deploy/): nginx and Caddy, both listening only on the loopback, plus a
+[Cloudflare Tunnel](deploy/cloudflared.yml.example) in front so that nothing at home listens on the
+internet and there is no certificate to renew. The live site is
+[scaleminiatures.fun](https://scaleminiatures.fun/).
+
+The front page loads **Google Analytics** (`G-JV7RQVWG6T`), which is the only third-party request it makes:
+the fonts are served from the site itself and there is nothing else. `game.html`, `race.html` and
+`viewer.html` load no analytics at all.
+
+### Deploying on a push
+
+`.github/workflows/deploy.yml` builds and deploys whatever lands on `main`. Since the machine has nothing
+listening on the internet, nothing can be pushed to it: a **self-hosted runner** sits beside the stack and
+pulls the work instead. Its container is [`deploy/gh-runner/docker-compose.yml`](deploy/gh-runner/docker-compose.yml),
+and the comments at the top of that file are the whole setup.
+
+The job installs Node (the runner image has neither a usable one nor npm), typechecks, runs the tests,
+builds, swaps `dist/` over without a gap, updates the poll service and the two config files, reloads Caddy
+and then asks the site for three URLs to prove it is still answering. **`MicroMac/` is never touched**: it
+is not in this repository, it exists only on that machine, and no deploy stands on it.
 
 ## Controls
 
@@ -128,6 +213,7 @@ On **GAME OPTIONS**, the screen the game opens on:
 | `F5` | redefine the ten driving keys |
 | `F6` | credits |
 | `F7` | calibrate the joystick (only shown when one is connected) |
+| `F8` | how much of the track a race draws (mine, not the original's) |
 | `Return` | play |
 | `Esc` | quit |
 

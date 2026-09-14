@@ -5,8 +5,12 @@
 <title>Micro Machines</title>
 <style>
   body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; background: #14161a; color: #ddd; }
-  canvas { display: block; image-rendering: pixelated; background: #000; width: 960px; height: 600px; max-width: 100%; }
+  canvas { display: block; image-rendering: pixelated; background: #000; width: 960px; height: auto; max-width: 100%; }
   code { background: #2a2f3a; padding: 1px 4px; border-radius: 3px; }
+  button { font: inherit; background: #2a2f3a; color: #ddd; border: 1px solid #3c4453; border-radius: 4px; padding: 3px 10px; cursor: pointer; }
+  /* fullscreen: the stage is the whole screen, black, with the canvas centred and scaled by JS */
+  #stage:fullscreen { background: #000; display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+  #stage:fullscreen canvas { max-width: none; }
 </style>
 </head>
 <body>
@@ -19,7 +23,30 @@ A click skips the Codemasters intro, and <code>?nointro</code> leaves it out alt
 controls, <code>F5</code> redefines the driving keys, <code>F7</code> calibrates a gamepad and
 <code>Return</code> plays; what you choose there is remembered. A gamepad counts as a joystick (steer with the
 stick, first button accelerates, second brakes) and the mouse needs a click to lock the pointer.</p>
-<canvas id="screen" width="320" height="200"></canvas>
+<div id="stage"><canvas id="screen" width="320" height="200"></canvas></div>
+<p><label>View: <select id="viewport">
+  <option value="256x200">DOS (256 x 200), as the game shipped</option>
+  <option value="320x200">VGA (320 x 200), the rest of the VGA screen</option>
+  <option value="320x224">TALL (320 x 224)</option>
+  <option value="384x224">WIDE (384 x 224), widescreen</option>
+  <option value="448x240">WIDEST (448 x 240)</option>
+</select></label>
+<button id="fullscreen" type="button">Fullscreen</button>
+<span style="opacity:.6">wider shows more track, and in Head to Head a bigger area before a car is left behind.
+<code>F8</code> on the game's own GAME OPTIONS screen does the same thing without leaving the game, under
+the names in brackets.
+Double-click the picture for fullscreen too. <code>Esc</code> leaves fullscreen; press it again to go back
+a screen in the game.</span></p>
+<div id="needfiles" hidden>
+  <p><strong>This page is not serving the game.</strong> Point it at your own installed copy of Micro Machines
+  and it will start. The folder is read in your browser and stays on your machine: nothing is uploaded.</p>
+  <p><button id="pickfolder" type="button">Choose your game folder…</button>
+  <input id="folder" type="file" webkitdirectory multiple hidden>
+  <span id="why" style="opacity:.6"></span></p>
+  <p style="opacity:.6">It has to be the <em>installed</em> directory, the one with <code>MICRO.EXE</code> and a
+  <code>GAME1</code> folder in it. A ZIP of floppy images is not enough on its own: run the original
+  <code>INSTALL.EXE</code> once under DOSBox and keep what it produces.</p>
+</div>
 <p id="status"></p>
 <script type="module" src="/src/app/game/main.ts"></script>
 </body>

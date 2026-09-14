@@ -26,7 +26,19 @@ export class GameFiles {
     return g;
   }
 
-  /** Dev helper: the files listed in a manifest ({files:[{path}]}) served under an HTTP prefix. Only the manifest is
+  /**
+   * The copy the page is served from, if its server keeps one: `<base>MicroMac/`, with `manifest.json`
+   * beside it. Everything is relative to the deployment's base, so the same build works at the root of a
+   * host and under a subfolder. Throws when nothing is served there, which is the ordinary case for a
+   * static build: the caller is expected to offer the folder picker instead.
+   */
+  static async fromServer(): Promise<GameFiles> {
+    // read defensively: `import.meta.env` is Vite's, and this file is also compiled without its types
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
+    return GameFiles.fromHttp(`${base}MicroMac/`, `${base}manifest.json`);
+  }
+
+  /** The files listed in a manifest ({files:[{path}]}) served under an HTTP prefix. Only the manifest is
    *  fetched up front; each file is fetched on first read (with retries), so a dropped request cannot silently turn
    *  into a "missing game file" later. */
   static async fromHttp(prefix: string, manifestUrl: string): Promise<GameFiles> {
@@ -65,6 +77,18 @@ export class GameFiles {
 
   /** Strip a leading "MicroMac/" (or any single top folder) so lookups are relative to the game root. */
   private add(rel: string, f: File): void { this.files.set(GameFiles.key(rel), f); }
+
+  /**
+   * One real request, no retries: is the server actually handing the files over, or does it only have the
+   * manifest? The manifest is a committed file and a static build copies it, so it loads happily on a host
+   * that serves no game data at all; without this the first failure arrives a second later, halfway into
+   * loading, as a bare error under a black canvas.
+   */
+  async served(name = 'INTRO.PAL'): Promise<boolean> {
+    const url = this.urls.get(name.toLowerCase());
+    if (url === undefined) return false;
+    try { return (await fetch(url)).ok; } catch { return false; }
+  }
 
   has(name: string): boolean { const k = name.toLowerCase(); return this.files.has(k) || this.urls.has(k); }
   list(): string[] { return [...new Set([...this.files.keys(), ...this.urls.keys()])].sort(); }

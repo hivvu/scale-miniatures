@@ -98,6 +98,14 @@ export class FrontEnd {
   /** fn 2a13: leaving GAME OPTIONS writes the 32 bytes of SETTINGS.DAT back. The page decides where. */
   saveSettings?: (bytes: Uint8Array) => void;
 
+  /**
+   * Port only, and the one thing on GAME OPTIONS the original has not got: how much of the track the race
+   * draws. `label` is what the screen shows beside it and `next` steps to the following size, the way F1 to
+   * F4 step through theirs. Left undefined the screen is the original's to the pixel, which is what the
+   * capture tests hold it to.
+   */
+  viewSize?: { label: string; next(): void };
+
   /** fn 2be8: the GAME?.LVL sets on the disk, in the order findfirst/findnext returned them. */
   gameSets?: readonly { digit: number; data: Uint8Array }[];
 
@@ -368,6 +376,25 @@ export class FrontEnd {
       const ch = d.r8(p);
       p++;
       if (ch === 0) return;
+      if (ch !== 0x20) this.glyph(ch, seg, height, di);
+      di = (di + 8) & 0xFFFF;
+    }
+  }
+
+  /**
+   * The same glyphs for a line the original has not got. Only what fn 0999 knows draws: digits, capitals,
+   * '!' and '?'; a space leaves a gap and anything else would come out as some other letter, so the port's
+   * own text sticks to that alphabet.
+   */
+  textLiteral(s: string, x: number, y: number, font: number): void {
+    const d = this.ds;
+    const seg = d.r16(font + 0x12) * 16, height = d.r8(font + 0x0D);
+    let di = (y * BUF_STRIDE + BUF_ORIGIN + x) & 0xFFFF;
+    let bx = x;
+    for (let i = 0; i < s.length; i++) {
+      bx += 8;
+      if (bx >= 0x107) return;                            // the right-edge guard of fn 0929
+      const ch = s.charCodeAt(i);
       if (ch !== 0x20) this.glyph(ch, seg, height, di);
       di = (di + 8) & 0xFFFF;
     }

@@ -1,0 +1,53 @@
+# The whole site as three containers: the built page, the poll behind it, and the Cloudflare Tunnel that
+# puts it on the internet. Nothing publishes a port on the host, because cloudflared reaches the web
+# container over the compose network, so this cannot collide with anything else the machine already runs.
+#
+#   scale-miniatures/
+#     docker-compose.yml   this file
+#     Caddyfile            from deploy/Caddyfile in the repository
+#     .env                 TUNNEL_TOKEN=..., chmod 600, never committed
+#     dist/                the output of `npm run build`
+#     MicroMac/            your own installed copy of the game
+#     data/                where the poll keeps its answers, owned by uid 1000
+#
+# Bring it up with `docker compose up -d`. The tunnel is the dashboard-managed kind: create it under
+# Cloudflare Zero Trust, Networks, Tunnels, pick Docker, and it gives you a token and writes the DNS
+# record for you. Put that token in `.env` and never anywhere else.
+
+services:
+  web:
+    image: caddy:2-alpine
+    container_name: scale-miniatures-web
+    restart: unless-stopped
+    volumes:
+      - ./dist:/srv/site:ro
+      - ./MicroMac:/srv/game:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - poll
+
+  poll:
+    image: node:22-alpine
+    container_name: scale-miniatures-poll
+    restart: unless-stopped
+    working_dir: /app
+    command: node server/poll.mjs
+    user: "1000:1000"
+    environment:
+      SM_POLL_PORT: "8787"
+      SM_POLL_FILE: /data/votes.ndjson
+      # Caddy is in front, so the rate limit has to read the forwarded address and not Caddy's own.
+      SM_POLL_PROXY: "1"
+    volumes:
+      - ./server:/app/server:ro
+      - ./data:/data
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: scale-miniatures-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?put TUNNEL_TOKEN in .env}
+    depends_on:
+      - web

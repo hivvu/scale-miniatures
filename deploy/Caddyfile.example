@@ -1,0 +1,32 @@
+# Scale Miniatures behind Caddy. The same three pieces as the nginx example, and the same note: the
+# /MicroMac/* block sends somebody else's game to whoever asks for it. Fine on a machine only your own
+# network can reach, because that is your own copy. Not fine on anything the internet can reach: Micro
+# Machines is still in copyright, it was Codemasters' and is Electronic Arts' now. Comment the block out
+# and the page falls back to asking each visitor for their own installed copy, which stays on their machine.
+
+# Behind a Cloudflare Tunnel (see cloudflared.yml.example), so this only listens on the loopback and Caddy
+# asks for no certificate of its own. Serving it directly instead? Use `scaleminiatures.fun {` and Caddy
+# will get the certificate itself.
+:8080 {
+	encode zstd gzip
+	root * /srv/scale-miniatures/dist
+
+	# The poll. Run the service with SM_POLL_PROXY=1 so it sees the real address.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
+	# Your own installed copy of the game, which is what lets the page start on its own. See the note
+	# above. Keep this directory OUTSIDE dist/, because a rebuild empties dist/.
+	handle /MicroMac/* {
+		root * /srv/micro-machines
+		uri strip_prefix /MicroMac
+		file_server
+	}
+
+	handle {
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		file_server
+	}
+}
