@@ -30,7 +30,22 @@ offered as silence.
 ## Widescreen
 
 The game draws 256x200 into the middle of the VGA screen and wastes 32 columns on each side. The port can
-draw more of the track instead: pick a size from the **View** box above the canvas, and it is remembered.
+draw more of the track instead. There are two ways to ask for it, and both are remembered: the **View** box
+above the canvas, or `F8` on the game's own GAME OPTIONS screen. `F8` is the one line on that screen the
+original has not got; it is drawn with the game's own font in the row F7 would have taken, and it steps
+through the sizes the way F1 to F4 step through theirs. It names them rather than giving the numbers,
+because the value column of that screen holds seven capitals and no more (the longest the game itself puts
+there is `BLASTER`):
+
+| | | |
+|---|---|---|
+| `DOS` | 256 x 200 | what the game shipped as |
+| `VGA` | 320 x 200 | the rest of the VGA screen |
+| `TALL` | 320 x 224 | and taller |
+| `WIDE` | 384 x 224 | |
+| `WIDEST` | 448 x 240 | |
+
+Each one shows strictly more of the track than the one before it.
 
 This is worth more than a bigger picture in **Head to Head**. A point is scored there when one car gets far
 enough ahead that the other is left behind, and the original decides that with two numbers, 232 and 176,
@@ -48,6 +63,12 @@ centred in the larger canvas.
 One consequence worth stating: the flag that says whether a car was drawn also feeds the AI's catch-up
 boost, so in a wider view the opponents stay "on screen" for longer, their rubber band engages later, and
 races are a little easier.
+
+There is a **Fullscreen** button next to it, and double-clicking the picture does the same. The canvas is
+scaled by whole numbers only, so every game pixel stays exactly the same size as its neighbours and the
+leftover space stays black; a fractional scale would make some pixels a row wider than others, which on
+320x200 artwork is very visible. `Esc` leaves fullscreen, and a second press then does the game's own Esc:
+the first one is swallowed so that leaving fullscreen does not also back you out of the menu you were in.
 
 ## What you need
 
@@ -150,6 +171,7 @@ On **GAME OPTIONS**, the screen the game opens on:
 | `F5` | redefine the ten driving keys |
 | `F6` | credits |
 | `F7` | calibrate the joystick (only shown when one is connected) |
+| `F8` | how much of the track a race draws (mine, not the original's) |
 | `Return` | play |
 | `Esc` | quit |
 

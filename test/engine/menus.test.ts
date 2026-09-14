@@ -10,6 +10,7 @@ import { unpackPklite } from '../../src/data/pklite';
 import { DataSegment } from '../../src/engine/memory';
 import { applySettings, DS_IMAGE_OFFSET } from '../../src/engine/setup';
 import { FrontEnd, newArena, loadFrontEndBanks, LOAD_SEG } from '../../src/engine/frontend';
+import { viewSizeRow } from '../../src/engine/screens';
 import { frontEnd, chooseOpponents, championshipBoard, verdict, elimination, champion, timerTick, pollInput,
   applyOptionsInputs, headToHead, headToHeadTwoPlayers, type Request, type Task } from '../../src/engine/menus';
 
@@ -392,6 +393,43 @@ describe.skipIf(!have)('front-end input loops', () => {
     g.key(0x1C);
     g.frames(10);
     expect(g.done).toBe(true);
+  });
+
+  it('F8 offers the race view size, and only when the page asks for it', () => {
+    const fe = boot();
+    seed(fe, 's00_options_ds.bin');
+    const d = fe.ds;
+    d.w16(0x2625, 0);                                   // no joystick, so F8 lands on F7's row
+    // with no hook the screen is the original's, to the pixel
+    const plain = new Driver(fe);
+    expect(compareWindow(fe.vram, gt('s00_options_vram.bin')).bad).toBe(0);
+    plain.key(0x42);                                    // and F8 does nothing at all
+    expect(compareWindow(fe.vram, gt('s00_options_vram.bin')).bad).toBe(0);
+
+    const sizes = ['256X200', '320X200', '384X224'];
+    let at = 0;
+    const fe2 = boot();
+    seed(fe2, 's00_options_ds.bin');
+    fe2.ds.w16(0x2625, 0);
+    fe2.viewSize = { get label(): string { return sizes[at]!; }, next: () => { at = (at + 1) % sizes.length; } };
+    const g = new Driver(fe2);
+    const row = viewSizeRow(fe2.ds);
+    const ink = (): number => {                         // pixels on the row the port's line occupies
+      let n = 0;
+      for (let y = row; y < row + 12; y++) for (let x = 32; x < 288; x++) if (fe2.vram[y * 320 + x] !== 0) n++;
+      return n;
+    };
+    expect(ink()).toBeGreaterThan(0);                   // F8 SCREEN SIZE 256X200 is on screen
+    expect(compareWindow(fe2.vram, gt('s00_options_vram.bin')).bad).toBeGreaterThan(0);
+    g.key(0x42);
+    expect(at).toBe(1);
+    g.key(0x42);
+    expect(at).toBe(2);
+    expect(g.done).toBe(false);                         // and it has not left the screen
+    // everything below the line is still the original's: the footer is not painted over
+    let bad = 0;
+    for (let y = row + 12; y < 200; y++) for (let x = 32; x < 288; x++) if (fe2.vram[y * 320 + x] !== gt('s00_options_vram.bin')[y * 320 + x]) bad++;
+    expect(bad).toBe(0);
   });
 
   it('the championship board draws one car per race run', () => {

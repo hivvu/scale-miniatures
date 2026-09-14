@@ -4,7 +4,7 @@
  * original stay outside so the same code can be driven by the browser event loop or by a test.
  */
 import { FrontEnd, FONT1, FONT2 } from './frontend';
-import { s16 } from './memory';
+import { s16, type DataSegment } from './memory';
 
 /** Object records used by the menus (data segment offsets, 0x1B bytes apart from 0x0B7C). */
 export const REC = {
@@ -84,6 +84,7 @@ export function drawOptions(fe: FrontEnd): void {
   let cx = 0;
   for (; cx < 6; cx++, y += 0x10) fe.textFromList(STR.options, cx, 0, y, FONT2);
   if (d.r16(0x2625) !== 0) fe.textFromList(STR.options, cx, 0, y, FONT2);
+  if (fe.viewSize) fe.textLiteral('F8 SCREEN SIZE', 0, viewSizeRow(d), FONT2);   // port only
   cx++;
   y = 0xB0;
   fe.textFromList(STR.options, cx, 0xFFFF, y, FONT1);
@@ -94,6 +95,12 @@ export function drawOptions(fe: FrontEnd): void {
 
   drawOptionValues(fe);
 }
+
+/**
+ * Where the port's own SCREEN SIZE line goes: the row after the last one the original draws. F7 is only
+ * there when a joystick was found, so most of the time that is the row F7 would have had.
+ */
+export function viewSizeRow(d: DataSegment): number { return d.r16(0x2625) !== 0 ? 0xA4 : 0x94; }
 
 /** fn 2770 at 284d: only the four chosen values, which is all that changes while the screen is up. */
 export function drawOptionValues(fe: FrontEnd): void {
@@ -109,6 +116,12 @@ export function drawOptionValues(fe: FrontEnd): void {
   fe.textFromList(STR.smoothness, d.r16(0x263A), 0xC8, y, FONT2);
   y += 0x10;
   if (d.r8(0x0F69) === 1) fe.textAt(STR.cheatMark, 0, y, FONT2);   // the cheat code puts a ! here
+  if (fe.viewSize) {                                              // port only, and it changes on F8
+    const vy = viewSizeRow(d);
+    fe.fillRect(0xC8, vy, 0x0C, 0x40, 0);         // 12 rows: the ink of FONT2 is y+1..y+11, and with a
+                                                  // joystick this row is the last one before the footer
+    fe.textLiteral(fe.viewSize.label, 0xC8, vy, FONT2);
+  }
   fe.present();
 }
 

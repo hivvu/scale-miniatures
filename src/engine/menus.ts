@@ -852,6 +852,8 @@ export function* gameOptions(fe: FrontEnd): Task<boolean> {
         } else if (al === 0x3E) {                       // F4: smoothness, 1..5 (5 = AUTO)
           d.w8(0x0F63, 1);
           ch = ch + 1 > 5 ? 1 : ch + 1;
+        } else if (al === 0x42 && fe.viewSize) {        // F8: the port's own line, not in SETTINGS.DAT
+          fe.viewSize.next();
         } else if (al !== 0x1C) continue;               // anything else: wait for another key
         d.w16(0x0F5F, bl + 1); d.w16(0x0F61, bh + 1);
         d.w16(0x0F64, cl); d.w16(0x263A, ch);

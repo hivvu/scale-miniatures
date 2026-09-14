@@ -12,6 +12,11 @@
  *
  * Widening is possible at all because the world is a 192x192-tile torus (0xC00 pixels, wrapping) with no
  * camera clamp, so there is always more map to show. See re/notes/60-tiles-blit.md.
+ *
+ * Growing the view moves the camera half the growth, and two things in the original read the camera rather
+ * than being placed by it: the animated surface of rounds 1, 3 and 5 (phased on `cam & 0x1f`) and the
+ * opening swoop's seam test. Both add `camOffsetX`/`camOffsetY` back before they decide anything, so the
+ * picture stays the original's at every size.
  */
 
 export interface Viewport {
@@ -38,6 +43,14 @@ export interface Viewport {
   /** Half the view, which is where the camera anchors put the car it follows. */
   readonly halfW: number;
   readonly halfH: number;
+  /**
+   * What to add to this view's camera to get the camera the original would have while showing the same
+   * middle of the world: zero at the original size, half the growth otherwise. Anything phased on the
+   * camera rather than positioned by it has to add it back, or it falls out of step with the map. The
+   * animated tile of rounds 1, 3 and 5 is the one such thing (fn 8996 phases it on `cam & 0x1f`).
+   */
+  readonly camOffsetX: number;
+  readonly camOffsetY: number;
   /** Head to head: how far apart the two cars may drift before one counts as left behind. */
   readonly h2hX: number;
   readonly h2hY: number;
@@ -65,11 +78,7 @@ const OUT_X = 32;
 
 const nextPow2 = (n: number): number => { let v = 1; while (v < n) v *= 2; return v; };
 
-/**
- * `width` must be a multiple of 16 (a tile) and `height` a multiple of 8. Widths of 256 + 64n are the ones
- * to prefer: the animated water tile of rounds 1, 3 and 5 is phased on `camX & 0x1F`, so only a half-widening
- * that is a multiple of 32 leaves the picture identical to the original's in the columns they share.
- */
+/** `width` must be a multiple of 16 (a tile) and `height` a multiple of 8. */
 export function makeViewport(width = 256, height = 200): Viewport {
   if (width % 16 !== 0 || width < 256) throw new Error(`viewport width ${width} must be a multiple of 16, at least 256`);
   if (height % 8 !== 0 || height < 200) throw new Error(`viewport height ${height} must be a multiple of 8, at least 200`);
@@ -87,6 +96,7 @@ export function makeViewport(width = 256, height = 200): Viewport {
     bufSize, mask: bufSize - 1,
     origin, clipH, overflowDi: origin + height * stride,
     halfW: width >> 1, halfH: height >> 1,
+    camOffsetX: (width >> 1) - 0x80, camOffsetY: (height >> 1) - 0x64,
     h2hX: width - CAR, h2hY: height - CAR,
     h2hWrapX: WORLD - (width - CAR), h2hWrapY: WORLD - (height - CAR),
     bannerOffRight: width + 0x58,

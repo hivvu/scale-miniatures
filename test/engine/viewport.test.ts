@@ -13,7 +13,7 @@ describe('viewport', () => {
       cols: 17, rows: 14,
       bufSize: 0x10000, mask: 0xFFFF,
       origin: 0x1110, clipH: 0xE0, overflowDi: 0xE590,
-      halfW: 0x80, halfH: 0x64,
+      halfW: 0x80, halfH: 0x64, camOffsetX: 0, camOffsetY: 0,
       h2hX: 0xE8, h2hY: 0xB0, h2hWrapX: 0xB18, h2hWrapY: 0xB50,
       bannerOffRight: 0x158,
       outWidth: 320, outX: 32,
@@ -41,6 +41,8 @@ describe('viewport', () => {
     expect(vp.mask).toBe(0x1FFFF);
     expect(vp.clipH).toBe(0xF8);
     expect(vp.halfW).toBe(192);
+    expect(vp.camOffsetX).toBe(64);
+    expect(vp.camOffsetY).toBe(12);
     expect(vp.h2hX).toBe(0x168);
     expect(vp.h2hWrapX).toBe(0xC00 - 0x168);
     expect(vp.outWidth).toBe(448);

@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     ph0: await files.read(names['ph0']!), vh0: await files.read(names['vh0']!), pr,
   };
   // Challenge, player 1 on keys 1 (character 10), three AI cars (character 6), as the first Challenge race is set up
-  const { ds, mapWords, banks, vehicle, extra, palette } = setupRace(raceFiles, { round, track, challengeIndex: 0, mode: 1, inputs: [4, 6, 6, 6], characters: [10, 6, 6, 6] });
+  const { ds, mapWords, banks, vehicle, extra, palette } = setupRace(raceFiles, { round, track, challengeIndex: 0, mode: 1, inputs: [4, 6, 6, 6], characters: [10, 6, 6, 6], viewport: VIEWPORT });
   const pal = paletteToRgba(decodePalette(palette));
   const race = new Race(ds, VIEWPORT);
   const renderer = new RaceRenderer({ ds, mapWords, banks, vehicle, extra, viewport: VIEWPORT });

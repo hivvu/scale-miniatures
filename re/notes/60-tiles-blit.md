@@ -69,6 +69,9 @@ Pixel-exact against the per-step VRAM captures of the traces (test/engine/frame.
   10 86a8 (f/10 = round 9 time-trial banners, 3/6/8/9 = 35be no-op). 851f/855a/8634 (90c5 tail) are head-to-head
   only in practice ([26b8] is a car offset only in H2H); in single player the end sequence holds the last frame.
 - Rounds 1/3/5 water: fn 8996 rewrites tile 0 from its copy at ds:3ee3 rotated by ((camX & 0x1f) >> 1, (camY & 0x1f) >> 1).
+  This is the one surface phased on the camera instead of placed by it, so the wider views have to add the half of
+  their growth the camera moved back on before taking the phase, or the whole animated ground sits half of it out of
+  step with the map drawn on top (very visible on round 5's tablecloth).
 - Round 8 (fn 8a2b): 3x3 blocks of map words cycle through tile sets 0 / 9 / 0x12 by ([26d3] >> 2) & 3 (phase 3 resets
   the counter); track 2: block at row 68 col 18; track 3: (62,98) (68,90) (80,90) (86,90) (104,90) (110,90); track 1 none.
 - Round 9 banners (states 0xF/0x10 -> fn 86d2 -> 9289): car drawn, then the 88x22 image (ds:8ce3 time up, ds:9523

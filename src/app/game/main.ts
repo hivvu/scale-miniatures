@@ -29,7 +29,16 @@ const ctx = canvas.getContext('2d')!;
  * wider view is opt-in with ?width= and ?height=, and is remembered. Menus and the intro are fixed-size
  * artwork that cannot widen, so they stay centred in the larger canvas.
  */
-const VIEWPORT = ((): Viewport => {
+/**
+ * The sizes F8 steps through, and the ones the picker above the canvas offers. Each one shows strictly
+ * more of the track than the one before it, so the names read as a scale the way SMOOTHNESS does. They
+ * are capitals only and at most seven characters because that is what the value column of GAME OPTIONS
+ * holds: the longest the game itself puts there is BLASTER.
+ */
+const SIZES: readonly (readonly [number, number, string])[] =
+  [[256, 200, 'DOS'], [320, 200, 'VGA'], [320, 224, 'TALL'], [384, 224, 'WIDE'], [448, 240, 'WIDEST']];
+
+let VIEWPORT = ((): Viewport => {
   const q = new URLSearchParams(location.search);
   const stored = ((): [number, number] | undefined => {
     try { const v = localStorage.getItem('micromachines/viewport'); return v ? JSON.parse(v) as [number, number] : undefined; }
@@ -57,13 +66,78 @@ if (chooser) {
   });
 }
 
-const OUT_W = Math.max(320, VIEWPORT.outWidth), OUT_H = Math.max(200, VIEWPORT.height);
+let OUT_W = Math.max(320, VIEWPORT.outWidth), OUT_H = Math.max(200, VIEWPORT.height);
 canvas.width = OUT_W; canvas.height = OUT_H;
-canvas.style.width = `${OUT_W * 3}px`;
-canvas.style.height = 'auto';   // with max-width: 100% this keeps the aspect on a narrow window
+
+/**
+ * How big to draw the canvas. Windowed it is a fixed 3x, capped by the page width. Fullscreen it is the
+ * largest **whole** multiple that fits, so every game pixel stays the same size as its neighbours; a
+ * fractional scale would leave some pixels a row wider than others, which on 320x200 art is very visible.
+ * Whatever is left over stays black around it.
+ */
+function fitCanvas(): void {
+  if (document.fullscreenElement === stage) {
+    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / OUT_W, window.innerHeight / OUT_H)));
+    canvas.style.width = `${OUT_W * scale}px`;
+    canvas.style.height = `${OUT_H * scale}px`;
+  } else {
+    canvas.style.width = `${OUT_W * 3}px`;
+    canvas.style.height = 'auto';     // with max-width: 100% this keeps the aspect on a narrow window
+  }
+}
+
+const stage = document.querySelector('#stage') as HTMLElement | null;
+const fullscreenButton = document.querySelector('#fullscreen') as HTMLButtonElement | null;
+/**
+ * Not every browser has the unprefixed call (older Safari), none of them allow it outside a user gesture,
+ * and any of them may simply refuse. A refusal is not worth an error in the console: the button just does
+ * nothing and the game carries on windowed.
+ */
+const toggleFullscreen = (): void => {
+  const el = stage as (HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }) | null;
+  const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> };
+  if (!el) return;
+  const call = document.fullscreenElement
+    ? (document.exitFullscreen?.bind(document) ?? doc.webkitExitFullscreen?.bind(document))
+    : (el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el));
+  void Promise.resolve(call?.()).catch(() => { /* refused, or no fullscreen at all */ });
+};
+fullscreenButton?.addEventListener('click', toggleFullscreen);
+canvas.addEventListener('dblclick', toggleFullscreen);
+/** Some browsers leave fullscreen before delivering the Escape, others after; this covers both. */
+let leftFullscreenAt = -1e9;
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) leftFullscreenAt = performance.now();
+  fitCanvas();
+});
+const escapeLeftFullscreen = (): boolean =>
+  document.fullscreenElement !== null || performance.now() - leftFullscreenAt < 500;
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
 const off = document.createElement('canvas'); off.width = OUT_W; off.height = OUT_H;
 const octx = off.getContext('2d')!;
-const img = octx.createImageData(OUT_W, OUT_H);
+let img = octx.createImageData(OUT_W, OUT_H);
+
+/**
+ * Change the size the race draws at, which F8 on GAME OPTIONS does. Everything but the race is fixed-size
+ * artwork presented centred, so the whole canvas can be resized here and now; the race itself picks the
+ * new geometry up when the next one starts, which is the only moment that screen can be reached from.
+ */
+function setViewport(vp: Viewport): void {
+  VIEWPORT = vp;
+  OUT_W = Math.max(320, vp.outWidth); OUT_H = Math.max(200, vp.height);
+  canvas.width = OUT_W; canvas.height = OUT_H;
+  off.width = OUT_W; off.height = OUT_H;
+  img = octx.createImageData(OUT_W, OUT_H);
+  if (chooser) chooser.value = `${vp.width}x${vp.height}`;
+  try { localStorage.setItem('micromachines/viewport', JSON.stringify([vp.width, vp.height])); } catch { /* private window */ }
+  const q = new URLSearchParams(location.search);        // ?width= wins over the stored value, so move it too
+  if (q.has('width') || q.has('height')) {
+    q.set('width', String(vp.width)); q.set('height', String(vp.height));
+    history.replaceState(null, '', `${location.pathname}?${q.toString()}`);
+  }
+  fitCanvas();
+}
 
 const TICK = 1 / 70.086;
 
@@ -109,6 +183,18 @@ async function main(): Promise<void> {
     if (device === 1 && sound) fe.sound = sound; else { sound?.stopAll(); delete fe.sound; }
   };
 
+  // F8 on GAME OPTIONS: the one line on that screen the original has not got. It steps through the same
+  // sizes the picker above the canvas offers and is remembered the same way; SETTINGS.DAT knows nothing
+  // about it, so it is deliberately not part of what fn 2a13 writes back.
+  const sizeAt = (): number => SIZES.findIndex(([w, h]) => w === VIEWPORT.width && h === VIEWPORT.height);
+  fe.viewSize = {
+    get label(): string { return SIZES[sizeAt()]?.[2] ?? `${VIEWPORT.width}X${VIEWPORT.height}`; },
+    next(): void {
+      const [w, h] = SIZES[(sizeAt() + 1) % SIZES.length]!;
+      setViewport(makeViewport(w, h));
+    },
+  };
+
   // fn 2a13: the options screen writes SETTINGS.DAT back whenever anything on it changed.
   fe.saveSettings = (bytes: Uint8Array): void => {
     try { localStorage.setItem(SETTINGS, btoa(String.fromCharCode(...bytes))); } catch { /* private window */ }
@@ -141,7 +227,18 @@ async function main(): Promise<void> {
   // reads raw scancodes (its Return, and the cheat code's digits).
   const scancode = (code: string): number | undefined =>
     (ds.r8(0x03F3) === 1 || fe.rawKeys ? undefined : alias[code]) ?? SCANCODE[code];
-  window.addEventListener('keydown', e => { sound?.start(); const s = scancode(e.code); if (s === undefined) return; if (!e.repeat) { kb.make(s); intro?.key(s); } e.preventDefault(); });
+  // The Escape that leaves fullscreen would otherwise also back the game out of whatever screen it is on.
+  // Chrome swallows that keydown itself but still delivers the keyup, and the menus read the last key
+  // *released*, so the keyup is the one that has to be ignored. The next press does the game's Esc.
+  let swallowEscapeUp = false;
+  window.addEventListener('keydown', e => {
+    sound?.start();
+    if (e.code === 'Escape' && escapeLeftFullscreen()) { swallowEscapeUp = true; return; }
+    const s = scancode(e.code);
+    if (s === undefined) return;
+    if (!e.repeat) { kb.make(s); intro?.key(s); }
+    e.preventDefault();
+  });
   window.addEventListener('pointerdown', () => {
     sound?.start();
     intro?.click();
@@ -149,7 +246,13 @@ async function main(): Promise<void> {
     const wantsMouse = [0x2658, 0x265A, 0x265C, 0x265E].some(o => ds.r16(o) === 3);
     if (wantsMouse && document.pointerLockElement === null) void canvas.requestPointerLock();
   });
-  window.addEventListener('keyup', e => { const s = scancode(e.code); if (s === undefined) return; kb.release(s); intro?.key(s | 0x80); e.preventDefault(); });
+  window.addEventListener('keyup', e => {
+    if (e.code === 'Escape' && (swallowEscapeUp || escapeLeftFullscreen())) { swallowEscapeUp = false; return; }
+    const s = scancode(e.code);
+    if (s === undefined) return;
+    kb.release(s); intro?.key(s | 0x80);
+    e.preventDefault();
+  });
   window.addEventListener('blur', () => kb.clear());
 
   const frontPalette = paletteToRgba(decodePalette(await files.read('INTRO.PAL')));
@@ -208,7 +311,7 @@ async function main(): Promise<void> {
     const assets = setupRace(raceFiles, {
       round, track, challengeIndex: ds.r8(0x28C1), mode: ds.r16(0x2656),
       inputs: [ds.r16(0x2658), ds.r16(0x265A), ds.r16(0x265C), ds.r16(0x265E)],
-      characters: [ds.r16(0x2668), ds.r16(0x266A), ds.r16(0x266C), ds.r16(0x266E)],
+      characters: [ds.r16(0x2668), ds.r16(0x266A), ds.r16(0x266C), ds.r16(0x266E)], viewport: VIEWPORT,
     }, ds);
     sound?.stopVoices();                               // fn 11aa: the song stops for the race
     palette = paletteToRgba(decodePalette(assets.palette));

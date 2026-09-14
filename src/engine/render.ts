@@ -95,8 +95,12 @@ export class RaceRenderer {
     const d = this.src.ds;
     const round = d.r8(0x28BF);
     if (round === 1 || round === 3 || round === 5) {
-      // fn 8996: tile 0 (water) = its saved copy at ds:3ee3 rotated by ((camX & 0x1f) >> 1, (camY & 0x1f) >> 1)
-      const dx = (d.r16(0x264A) & 0x1F) >> 1, dy = (d.r16(0x264C) & 0x1F) >> 1;
+      // fn 8996: tile 0 (water) = its saved copy at ds:3ee3 rotated by ((camX & 0x1f) >> 1, (camY & 0x1f) >> 1).
+      // This is the one thing phased on the camera instead of placed by it, so a bigger view has to put the
+      // camera back where the original's would be first: half the extra height is not a multiple of 16, and
+      // without this the whole animated surface sits half of it out of step with the map drawn on top.
+      const cx = (d.r16(0x264A) + this.vp.camOffsetX) & 0xFFFF, cy = (d.r16(0x264C) + this.vp.camOffsetY) & 0xFFFF;
+      const dx = (cx & 0x1F) >> 1, dy = (cy & 0x1F) >> 1;
       for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c++) this.src.banks[((r + dy) & 0xF) * 16 + ((c + dx) & 0xF)] = d.m[0x3EE3 + r * 16 + c]!;
     } else if (round === 2) {
       const phase = ((d.r16(0x26D1) + 1) >> 2) & 3;

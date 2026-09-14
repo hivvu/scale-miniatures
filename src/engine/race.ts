@@ -1104,13 +1104,20 @@ export class Race {
       }
     }
     for (const o of [0x137E, 0x14E2, 0x1646, 0x17AA]) d.w16(o, 0);
-    for (const [tgt, cam, step] of [[0x2646, 0x264A, 0x264E], [0x2648, 0x264C, 0x2650]] as const) {
+    // The swoop compares the target and the camera as plain 16-bit numbers, so when the two sit on opposite
+    // sides of the world seam the gap reads as about 0xb00 and the camera jumps the whole way instead of
+    // gliding in. That is what the original does and the traces pin it, but which tracks it happens on
+    // depends on where the seam falls relative to the camera, and a wider view moves the camera off it. So
+    // the decision is taken on the camera the original would have, and only the movement applied here.
+    for (const [tgt, cam, step, off] of [[0x2646, 0x264A, 0x264E, this.vp.camOffsetX],
+                                         [0x2648, 0x264C, 0x2650, this.vp.camOffsetY]] as const) {
       const cx = d.rs16(step);
-      let ax = s16(d.r16(tgt) - d.r16(cam)); let dx = ax;
+      let ax = s16(((d.r16(tgt) + off) % 0xC00) - ((d.r16(cam) + off) % 0xC00)); let dx = ax;
       if (ax <= -1) ax = -ax;
       if (ax > 0x3E8 || ax <= cx) d.w16(step, 0x32);
       else { ax = cx; if (dx <= -1) ax = -ax; dx = ax; }
       d.add16(cam, dx);
+      if (off !== 0) d.w16(cam, (d.rs16(cam) % 0xC00 + 0xC00) % 0xC00);   // a world coordinate again
     }
     if (d.r16(0x2650) === 0x32 && d.r16(0x264E) === 0x32) for (const o of [0x137E, 0x14E2, 0x1646, 0x17AA]) d.w16(o, 1);
   }

@@ -32,7 +32,7 @@ describe.skipIf(!have)('head to head race', () => {
       pr: ['pr0', 'pr1', 'pr2'].map(k => names[k]!).filter(n => existsSync(join(DATA, n))).map(read),
     };
     const assets = setupRace(files, {
-      round, track, challengeIndex: 1, mode: 2, inputs: [4, 6, 6, 6], characters: [3, 5, 6, 6],
+      round, track, challengeIndex: 1, mode: 2, inputs: [4, 6, 6, 6], characters: [3, 5, 6, 6], viewport: vp,
     });
     const race = new Race(assets.ds, vp);
     const renderer = new RaceRenderer({ ds: assets.ds, mapWords: assets.mapWords, banks: assets.banks, vehicle: assets.vehicle, extra: assets.extra, viewport: vp });

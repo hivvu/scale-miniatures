@@ -16,8 +16,10 @@ import { lzDecode } from '../../src/data/lzcodec';
 import { decodeTileMap } from '../../src/data/tilemap';
 import { decodeBlocks, expandMap } from '../../src/data/blocks';
 import { decodeVehicle, frameTableBytes } from '../../src/data/sprites';
-import { raceFileNames } from '../../src/engine/setup';
-import { DOS_VIEWPORT, makeViewport } from '../../src/engine/viewport';
+import { raceFileNames, setupRace, type RaceFiles } from '../../src/engine/setup';
+import { DOS_VIEWPORT, makeViewport, type Viewport } from '../../src/engine/viewport';
+import { Race } from '../../src/engine/race';
+import { unpackPklite } from '../../src/data/pklite';
 
 const GT = join(process.cwd(), 'build/golden/gt');
 const DATA = process.env['MM_DATA_DIR'] ?? join(process.cwd(), 'MicroMac');
@@ -30,7 +32,7 @@ const traces = existsSync(GT) && existsSync(join(DATA, 'GAME1', 'ROUND21.MAP'))
 
 const CARS_OFF = 0x1240, GLOB_OFF = 0x2600;
 const WIDE = makeViewport(384, 200);
-const DW = (WIDE.width - DOS_VIEWPORT.width) / 2;      // 64: a multiple of 32, so the water tile keeps its phase
+const DW = (WIDE.width - DOS_VIEWPORT.width) / 2;      // 64: half the growth, which is how far the camera moves
 
 /** Built fresh per render: the animated tiles write into mapWords and the tile banks. */
 function sources(ds: DataSegment, round: number, track: number): RenderSources {
@@ -111,4 +113,49 @@ describe.skipIf(traces.length === 0)('a wider viewport adds pixels without movin
       expect(vp.overflowDi + vp.width).toBeLessThanOrEqual(vp.bufSize);
     }
   });
+});
+
+/**
+ * The same check without a golden trace behind it, so it can cover every round and every offered size:
+ * set a race up twice, step the physics the same number of times, and require the shared window to be
+ * identical. Height is what the trace-driven test above cannot reach (it renders both views 200 rows tall),
+ * and height is where the two bugs were: the animated surface of rounds 1, 3 and 5 is phased on the camera
+ * rather than placed by it, so half the extra height put it out of step with the map drawn on it, and the
+ * swoop's seam test moved with the camera and made tracks jump that do not jump in the original.
+ */
+describe.skipIf(!existsSync(join(DATA, 'MICRO.EXE')))('every round at every offered size', () => {
+  function frame(round: number, track: number, vp: Viewport, steps: number): Uint8Array {
+    const n = raceFileNames(round, track);
+    const opt = (f: string): Uint8Array | undefined => existsSync(join(DATA, f)) ? read(f) : undefined;
+    const files: RaceFiles = { exe: unpackPklite(read('MICRO.EXE')).image, settings: opt('SETTINGS.DAT'),
+      brk: opt(n['brk']!), lev: opt(n['lev']!), strtPos: read(n['strtPos']!), cheats: read(n['cheats']!),
+      map: read(n['map']!), ct: read(n['ct']!), col: read(n['col']!), dir: read(n['dir']!), pal: read(n['pal']!),
+      ph0: read(n['ph0']!), vh0: read(n['vh0']!), pr: ['pr0','pr1','pr2'].map(k => n[k]!).filter(f => existsSync(join(DATA,f))).map(read) };
+    const a = setupRace(files, { round, track, challengeIndex: 0, mode: 1, inputs: [4,6,6,6], characters: [3,5,6,6], viewport: vp });
+    const race = new Race(a.ds, vp); race.raceLoopInit();
+    for (let s = 0; s < steps; s++) { race.stepPhysics(0); race.stepPost(); }
+    const r = new RaceRenderer({ ds: a.ds, mapWords: a.mapWords, banks: a.banks, vehicle: a.vehicle, extra: a.extra, viewport: vp });
+    return r.render(() => race.renderSideEffects());
+  }
+
+  for (let round = 1; round <= 9; round++) {
+    it(`round ${round} shows the same picture, only more of it`, () => {
+      for (const steps of [0, 8, 60]) {
+        const want = frame(round, 1, DOS_VIEWPORT, steps);
+        for (const vp of [makeViewport(320, 200), makeViewport(320, 224), makeViewport(384, 224), makeViewport(448, 240)]) {
+          const got = frame(round, 1, vp, steps);
+          const dx = (vp.width - 0x100) / 2, dy = (vp.height - 0xC8) / 2;
+          const bad: string[] = [];
+          for (let y = 0; y < 200; y++) {
+            for (let x = 48; x < 256; x++) {            // x < 48 is the HUD, which tracks the left edge
+              const a = want[y * DOS_VIEWPORT.outWidth + DOS_VIEWPORT.outX + x]!;
+              const b = got[(y + dy) * vp.outWidth + vp.outX + dx + x]!;
+              if (a !== b && bad.length < 4) bad.push(`(${x},${y}) ${a} vs ${b}`);
+            }
+          }
+          expect(bad, `round ${round} step ${steps} at ${vp.width}x${vp.height}`).toEqual([]);
+        }
+      }
+    });
+  }
 });
