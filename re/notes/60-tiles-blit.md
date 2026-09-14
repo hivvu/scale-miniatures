@@ -86,3 +86,35 @@ Pixel-exact against the per-step VRAM captures of the traces (test/engine/frame.
   two-file trace layout (cars_/glob_) was being expanded into one buffer with zeros between the car structs and the
   globals, wiping the AI direction tables (ds:18fb/191b) and checkpoint windows (ds:1feb) before the replayed step.
   All 21 frames are exact.
+
+## The viewport (port only)
+
+Every number that described the 256x200 window used to be a literal spread through the renderer and the
+physics. They now come from one place, `src/engine/viewport.ts`, derived from a width and a height:
+
+| field | at the original size | where it was |
+|---|---|---|
+| `stride` | 0x110 | bytes per back-buffer row (width + a 16 px margin for the fine scroll) |
+| `cols` / `rows` | 17 / 14 | the tile loop at 9107, one more than the view needs |
+| `origin` | 0x1110 | the top-left visible pixel, row 16 column 16 |
+| `bufSize` / `mask` | 0x10000 / 0xFFFF | segment 6D78 and its 16-bit wrap |
+| `clipH` | 0xE0 | fn 0630: 200 visible rows plus a 24 px car |
+| `overflowDi` | 0xE590 | where fn 0630 parks a sprite clipped at the bottom, one row below the copy |
+| `halfW` / `halfH` | 0x80 / 0x64 | the per-car camera anchors written at fn 53bc |
+| `h2hX` / `h2hY` | 0xE8 / 0xB0 | fn 4fd1's "the cars are too far apart" test: width - 24, height - 24 |
+| `outWidth` / `outX` | 320 / 32 | fn 92bc's copy into mode 13h |
+
+`DOS_VIEWPORT` reproduces all of them exactly and is the default, so the golden captures still decide what
+is correct; `test/engine/viewport.test.ts` pins every value.
+
+Two derivations are load-bearing. `bufSize` is the next power of two that holds `origin + (height+1)*stride`,
+which at the original size lands on **0x10000 exactly**, so the wrap-around the original relies on is
+preserved rather than approximated. And `clipH` is `height + 24`, **not** the buffer's capacity: the two
+agree at 256x200, but the capacity formula grows with the width and would silently extend the window
+downwards.
+
+Widening works at all because the world is a torus and the camera has no clamp, so there is always more map.
+`test/engine/widescreen.test.ts` renders the same frozen state at 256x200 and at 384x200 with the camera
+moved half the extra width to the left, and requires the shared columns to be identical: the wider view adds
+pixels without moving any. The HUD is the exception, and deliberately so: it is anchored to the left edge of
+the view, so it travels with it.

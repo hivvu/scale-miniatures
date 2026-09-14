@@ -6,6 +6,7 @@
 import { GameFiles } from '../../hal/fs/GameFiles';
 import { SCANCODE } from '../../hal/input/scancodes';
 import { BrowserDevices } from '../../hal/input/Analogue';
+import { DOS_VIEWPORT, makeViewport, type Viewport } from '../../engine/viewport';
 import { decodePalette, paletteToRgba } from '../../data/palette';
 import { unpackPklite } from '../../data/pklite';
 import { setupRace, raceFileNames, applySettings, DS_IMAGE_OFFSET, type RaceFiles } from '../../engine/setup';
@@ -23,9 +24,46 @@ import { RaceRenderer } from '../../engine/render';
 const status = document.querySelector('#status') as HTMLElement;
 const canvas = document.querySelector('#screen') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
-const off = document.createElement('canvas'); off.width = 320; off.height = 200;
+/**
+ * How much of the track to draw. The original's 256x200 is the default and is what the captures check; a
+ * wider view is opt-in with ?width= and ?height=, and is remembered. Menus and the intro are fixed-size
+ * artwork that cannot widen, so they stay centred in the larger canvas.
+ */
+const VIEWPORT = ((): Viewport => {
+  const q = new URLSearchParams(location.search);
+  const stored = ((): [number, number] | undefined => {
+    try { const v = localStorage.getItem('micromachines/viewport'); return v ? JSON.parse(v) as [number, number] : undefined; }
+    catch { return undefined; }
+  })();
+  const w = Number(q.get('width') ?? stored?.[0] ?? DOS_VIEWPORT.width);
+  const h = Number(q.get('height') ?? stored?.[1] ?? DOS_VIEWPORT.height);
+  try {
+    const vp = makeViewport(w, h);
+    if (q.has('width') || q.has('height')) {
+      try { localStorage.setItem('micromachines/viewport', JSON.stringify([vp.width, vp.height])); } catch { /* private window */ }
+    }
+    return vp;
+  } catch { return DOS_VIEWPORT; }
+})();
+// the picker above the canvas: choosing a size reloads, because the geometry is fixed when the race starts
+const chooser = document.querySelector('#viewport') as HTMLSelectElement | null;
+if (chooser) {
+  chooser.value = `${VIEWPORT.width}x${VIEWPORT.height}`;
+  chooser.addEventListener('change', () => {
+    const [w, h] = chooser.value.split('x');
+    const q = new URLSearchParams(location.search);
+    q.set('width', w!); q.set('height', h!);
+    location.search = q.toString();
+  });
+}
+
+const OUT_W = Math.max(320, VIEWPORT.outWidth), OUT_H = Math.max(200, VIEWPORT.height);
+canvas.width = OUT_W; canvas.height = OUT_H;
+canvas.style.width = `${OUT_W * 3}px`;
+canvas.style.height = 'auto';   // with max-width: 100% this keeps the aspect on a narrow window
+const off = document.createElement('canvas'); off.width = OUT_W; off.height = OUT_H;
 const octx = off.getContext('2d')!;
-const img = octx.createImageData(320, 200);
+const img = octx.createImageData(OUT_W, OUT_H);
 
 const TICK = 1 / 70.086;
 
@@ -137,9 +175,19 @@ async function main(): Promise<void> {
   let ticks = 0, steps = 0, acc = 0, last = performance.now();
   let stepsPerFrame = 1, ticksPerFrame = 3;
 
-  const present = (fb: Uint8Array): void => {
+  /** `fb` may be narrower than the canvas (the menus and the intro always are): centre it. */
+  const present = (fb: Uint8Array, fbW = 320, fbH = 200): void => {
     const out = new Uint32Array(img.data.buffer);
-    for (let i = 0; i < 64000; i++) out[i] = palette[fb[i]!]!;
+    if (fbW === OUT_W && fbH === OUT_H) {
+      for (let i = 0; i < OUT_W * OUT_H; i++) out[i] = palette[fb[i]!]!;
+    } else {
+      const x0 = (OUT_W - fbW) >> 1, y0 = (OUT_H - fbH) >> 1;
+      out.fill(palette[0]!);
+      for (let y = 0; y < fbH; y++) {
+        const src = y * fbW, dst = (y + y0) * OUT_W + x0;
+        for (let x = 0; x < fbW; x++) out[dst + x] = palette[fb[src + x]!]!;
+      }
+    }
     octx.putImageData(img, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
@@ -164,10 +212,11 @@ async function main(): Promise<void> {
     }, ds);
     sound?.stopVoices();                               // fn 11aa: the song stops for the race
     palette = paletteToRgba(decodePalette(assets.palette));
-    race = new Race(ds);
+    race = new Race(ds, VIEWPORT);
     race.devices = devices;
     if (sound) race.sound = sound;
-    renderer = new RaceRenderer({ ds, mapWords: assets.mapWords, banks: assets.banks, vehicle: assets.vehicle, extra: assets.extra });
+    renderer = new RaceRenderer({ ds, mapWords: assets.mapWords, banks: assets.banks, vehicle: assets.vehicle,
+      extra: assets.extra, viewport: VIEWPORT });
     renderer.race = race;
     stepsPerFrame = ds.r16(0x263A);
     ticksPerFrame = [0, 1, 3, 5, 7, 32][stepsPerFrame] ?? 3;
@@ -210,14 +259,16 @@ async function main(): Promise<void> {
   function pausedFrame(): void {
     if (race!.pauseFlash) {                              // 3734: a CHEATS.BIN spot was applied
       race!.pauseFlash = false;
-      if (frame) { for (let y = 0; y < 200; y++) frame.fill(0xFF, y * 320 + 32, y * 320 + 32 + 256); }
-      if (frame) present(frame);
+      if (frame) for (let y = 0; y < VIEWPORT.height; y++) {
+        frame.fill(0xFF, y * VIEWPORT.outWidth + VIEWPORT.outX, y * VIEWPORT.outWidth + VIEWPORT.outX + VIEWPORT.width);
+      }
+      if (frame) present(frame, VIEWPORT.outWidth, VIEWPORT.height);
       return;
     }
     if (race!.pauseRender) {                             // 37a4: put the race back on screen
       race!.pauseRender = false;
       frame = renderer!.render(() => race!.renderSideEffects());
-      present(frame);
+      present(frame, VIEWPORT.outWidth, VIEWPORT.height);
       return;
     }
     if (race!.screenDump) {                             // fn 35bf: SCRE0.RAW, SCRE1.RAW, ...
@@ -226,14 +277,14 @@ async function main(): Promise<void> {
       let name = '';
       for (let p = 0x2929; ds.r8(p) !== 0; p++) name += String.fromCharCode(ds.r8(p));
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([renderer!.back.slice(0, 0xFFFA)]));
+      a.href = URL.createObjectURL(new Blob([renderer!.back.slice(0, Math.min(0xFFFA, VIEWPORT.bufSize))]));
       a.download = name;
       a.click();
       const url = a.href;
       setTimeout(() => { URL.revokeObjectURL(url); }, 0);   // Firefox has raced a same-tick revoke
       status.textContent = `wrote ${name}`;
     }
-    if (race!.pauseStage === 1) { frame = renderer!.pauseFrame(); present(frame); }
+    if (race!.pauseStage === 1) { frame = renderer!.pauseFrame(); present(frame, VIEWPORT.outWidth, VIEWPORT.height); }
   }
 
   /** One animation frame of the race loop. 'over' when fn 3039 has left. */
@@ -282,10 +333,10 @@ async function main(): Promise<void> {
       }
     } catch (e) {
       status.textContent = `stopped at step ${steps}: ${String(e)}`;
-      if (frame) present(frame);
+      if (frame) present(frame, VIEWPORT.outWidth, VIEWPORT.height);
       return 'error';
     }
-    if (frame) present(frame);
+    if (frame) present(frame, VIEWPORT.outWidth, VIEWPORT.height);
     return 'running';
   }
 

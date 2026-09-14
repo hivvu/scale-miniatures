@@ -27,6 +27,28 @@ do not own Micro Machines, this repository is of no use to you.
 What is missing: the PC speaker driver (`DRIVER2.BIN`), so the SPEAKER option is stepped over rather than
 offered as silence.
 
+## Widescreen
+
+The game draws 256x200 into the middle of the VGA screen and wastes 32 columns on each side. The port can
+draw more of the track instead: pick a size from the **View** box above the canvas, and it is remembered.
+
+This is worth more than a bigger picture in **Head to Head**. A point is scored there when one car gets far
+enough ahead that the other is left behind, and the original decides that with two numbers, 232 and 176,
+which are the view's width and height minus a car. It means "both cars still fit on screen". Widen the view
+and the area you have to play in genuinely grows with it, so matches run longer and getting away from
+someone takes real distance.
+
+It is off by default, and everything the captures check still runs at the original size. What proves the
+widening is honest is a test that renders the same frozen moment twice, once narrow and once wide with the
+camera moved half the extra width across, and requires every column the two views share to be identical:
+the wider view adds pixels without moving any. The one thing that does move is the HUD, which stays pinned
+to the left edge of the view. Menus and the intro are fixed-size artwork and cannot widen, so they sit
+centred in the larger canvas.
+
+One consequence worth stating: the flag that says whether a car was drawn also feeds the AI's catch-up
+boost, so in a wider view the opponents stay "on screen" for longer, their rubber band engages later, and
+races are a little easier.
+
 ## What you need
 
 * **Node.js 20, or 22 and up** (vite 6 and vitest 3 both skip Node 21).
