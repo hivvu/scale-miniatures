@@ -635,9 +635,14 @@ export function* elimination(fe: FrontEnd, bx: number): Task<void> {
   d.w16(bx + 0x08, d.r16(0x0A3A));                            // the face image the drop uses
   d.w16(bx + 0x13, character << 1);
   let si = 0x034B;
+  // fn 174a keeps the seat's y in cx across the whole loop (it adds the step, stores, then subtracts it
+  // straight back), so every step is measured from the seat and not from the last step. The table at [034b]
+  // is 02 04 08 10 20 2f 20 10 08 04 02 04 08 10 20 2f 00: the face dips, bobs back up and then goes under.
+  // Together with the height cut below, its bottom edge stays put and it sinks into its own seat.
+  const seatY = d.r16(bx + 0x04);
   for (;;) {
     const drop = d.r8(si); si++;
-    d.w16(bx + 0x04, d.r16(bx + 0x04) + drop);
+    d.w16(bx + 0x04, (seatY + drop) & 0xFFFF);
     if (drop === 0) break;
     d.w16(bx + 0x13, d.r16(bx + 0x13) ^ 1);
     fe.clip(bx);
