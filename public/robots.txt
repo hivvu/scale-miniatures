@@ -1,0 +1,9 @@
+# Everything here is meant to be read. The game's own files are not part of the site's content and are of
+# no use to a crawler, so they are left out to save everyone the trouble.
+
+User-agent: *
+Allow: /
+Disallow: /MicroMac/
+Disallow: /api/
+
+Sitemap: https://scaleminiatures.fun/sitemap.xml

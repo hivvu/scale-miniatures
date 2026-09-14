@@ -38,7 +38,7 @@ function uncoverWhenDrawn(): void {
       const d = ctx.getImageData(0, 0, canvas.width, Math.min(canvas.height, 40)).data;
       for (let i = 0; i < d.length && !drawn; i += 4) drawn = (d[i]! | d[i + 1]! | d[i + 2]!) !== 0;
     }
-    if (drawn || Date.now() > until) placeholder.hidden = true;
+    if (drawn || Date.now() > until) placeholder.remove();
     else setTimeout(look, 100);
   };
   look();
@@ -65,7 +65,7 @@ startGame();
 // The game asks for a folder when the server has no copy, and that prompt sits below the stage: get the
 // placeholder out of the way as soon as it appears, or the visitor is looking at a Loading button forever.
 if (needFiles && placeholder) {
-  new MutationObserver(() => { if (!needFiles.hidden) placeholder.hidden = true; })
+  new MutationObserver(() => { if (!needFiles.hidden) placeholder.remove(); })
     .observe(needFiles, { attributes: true, attributeFilter: ['hidden'] });
 }
 
