@@ -1,0 +1,821 @@
+{
+ "game": "Micro Machines (Codemasters, 1994) PC, 1996-12-24 re-release",
+ "root": "MicroMac",
+ "files": [
+  {
+   "path": "ANTIFONT.BIN",
+   "size": 13013,
+   "sha256": "e5fab6d3a7da77a88a2dc0f654f94a0333b18be61cef56a2ee57b6332b7ba86d"
+  },
+  {
+   "path": "APPSETUP.INF",
+   "size": 23667,
+   "sha256": "db051920e470ebe3e4aea53f570079127f535f95e06b5633abd6239cda2d288d"
+  },
+  {
+   "path": "BITSFILE.PH0",
+   "size": 3611,
+   "sha256": "6ce4f1739c7d58e97688302bf1524b68d22e9f406ba9d4927bf8b8a733f330f1"
+  },
+  {
+   "path": "COMPRESS.PI0",
+   "size": 8177,
+   "sha256": "5de75aa4b01d9509cb4d0fb2420d552b1712aaf0e75d79476cf69c234bd7d743"
+  },
+  {
+   "path": "COMPRESS.PI1",
+   "size": 7707,
+   "sha256": "83d89b9d92dde4f71796f0171254fb81237414708c6ec9ef9b741c4ffdb1c564"
+  },
+  {
+   "path": "COMPRESS.PI2",
+   "size": 6130,
+   "sha256": "52b1486113b7b3d01a857731db82e6123eb52de7dc7c2044624886a30f369f13"
+  },
+  {
+   "path": "COMPRESS.PI3",
+   "size": 7270,
+   "sha256": "354df6d9918002dbd94f619d166421b9d3eb330054d90582c59db9a29e6bd91a"
+  },
+  {
+   "path": "COMPRESS.PI4",
+   "size": 10174,
+   "sha256": "5d55dee7c8fc1afc1827d6b08b57c5eb7546d30a48746937ef49c2e07e194bed"
+  },
+  {
+   "path": "COMPRESS.PI5",
+   "size": 10925,
+   "sha256": "ec87c8af36c953e8342cca7be2ede213bc9279973ffaa65b21c3bbbf3ea80a36"
+  },
+  {
+   "path": "COMPRESS.PI6",
+   "size": 4057,
+   "sha256": "59a6c112405d44b1bbaeb402367a19ea54cbbfcf2bc908c9386f5ee73457674f"
+  },
+  {
+   "path": "CTL3D.DLL",
+   "size": 20976,
+   "sha256": "f0de922e7147311122813b3ea4b33fd7be0ef74eab9a93e19e5a637f6e6d3cf5"
+  },
+  {
+   "path": "DRIVER0.BIN",
+   "size": 8,
+   "sha256": "bd503593ccb1787efb5b8191d85092d12b3700fe3867b359cd011d8085ede7b3"
+  },
+  {
+   "path": "DRIVER1.BIN",
+   "size": 28625,
+   "sha256": "13e10fe4dad58f4d02a08ded4f1845820f047d97615f464e2622e0ba4f5696d3"
+  },
+  {
+   "path": "DRIVER2.BIN",
+   "size": 11845,
+   "sha256": "b6e2a24e9abe729be4477f1b7b22c72928dd57cc8f1c0ba7a40f338879eb98f7"
+  },
+  {
+   "path": "FONT.BIN",
+   "size": 27084,
+   "sha256": "7c954cbf66e8e958a89101210144457fd1200c3f42f490899715be1c4a51df69"
+  },
+  {
+   "path": "GAME1/CHEATS.BIN",
+   "size": 360,
+   "sha256": "97b264a25547b47c6e846a9be6e366235301872acfc12bacff3c94d9fbfe064f"
+  },
+  {
+   "path": "GAME1/INTRO.PAL",
+   "size": 768,
+   "sha256": "932a7cf58ae70ab6125d41b0c61c905cfe9d105a35d7647e5217b270b0de97db"
+  },
+  {
+   "path": "GAME1/ROUND1.COL",
+   "size": 1116,
+   "sha256": "76b785e10efbbf73c1fcffea3930a21048938c106a90af5d24ab089622135f5d"
+  },
+  {
+   "path": "GAME1/ROUND1.DIR",
+   "size": 2232,
+   "sha256": "04a3c0777cb53ad5d5a1a584e59306c4167069a324fef8149cf24ec554772a54"
+  },
+  {
+   "path": "GAME1/ROUND1.PAL",
+   "size": 768,
+   "sha256": "17b0510ddd1a1d12ca97c37c5b9e5dd6e1ebdb4c47440979efca6807222795d7"
+  },
+  {
+   "path": "GAME1/ROUND11.MAP",
+   "size": 2048,
+   "sha256": "4d09aeb4f128c0e6ddf6c061000573e30350d210dfc9c9cb600410dbd0a981d6"
+  },
+  {
+   "path": "GAME1/ROUND11B.BRK",
+   "size": 83,
+   "sha256": "e0131369caa68d37faa64b8f834d55d2a7b66f15fe9709bcc2c103db7a829f47"
+  },
+  {
+   "path": "GAME1/ROUND12.MAP",
+   "size": 2048,
+   "sha256": "ae8c3b98cafe63879e2eabfae2b65da0e420eea6868d2ec4d832a12c82e034ad"
+  },
+  {
+   "path": "GAME1/ROUND12B.BRK",
+   "size": 167,
+   "sha256": "9cc2570adf466bac1e99af612a00dd80edafc7361550aae45327783c9632c384"
+  },
+  {
+   "path": "GAME1/ROUND13.MAP",
+   "size": 2048,
+   "sha256": "58a65d20883ad15e96f0b97a52ed668a47d94a28c731ca3d5cf9c056fa80f63f"
+  },
+  {
+   "path": "GAME1/ROUND13B.BRK",
+   "size": 183,
+   "sha256": "326afb0b3d6bd52cb2ff1a0325aac84135bbbdececf6818de4fcf99b8e02c265"
+  },
+  {
+   "path": "GAME1/ROUND14.MAP",
+   "size": 2048,
+   "sha256": "f1d080473284b7a01bd64a34894b48313daf8339c93a88e9758d22014514e8ac"
+  },
+  {
+   "path": "GAME1/ROUND14B.BRK",
+   "size": 175,
+   "sha256": "428422dc4fdb58353c16f1de3067aad4b155f523ddaf58a657236c09b80944b0"
+  },
+  {
+   "path": "GAME1/ROUND1BR.CT",
+   "size": 4464,
+   "sha256": "e4dd2a0e98837f6abc7f8a66bacc0697e6c886008fc0168759b066759ab09883"
+  },
+  {
+   "path": "GAME1/ROUND1BR.LEV",
+   "size": 62,
+   "sha256": "8acbaba12fbb6bc1776d8789972f39e48c8ceb1f96ae853a5a50acde03a533c7"
+  },
+  {
+   "path": "GAME1/ROUND1BR.PR0",
+   "size": 7755,
+   "sha256": "a766198c2efb78ead7012520069e332f86fe0a983232536417850f5ccf3f72e9"
+  },
+  {
+   "path": "GAME1/ROUND1BR.PR1",
+   "size": 10064,
+   "sha256": "91f1470fbe39c3f3fabd9962fa5f2858995a8482d0d6ebec8a097c684ec786c4"
+  },
+  {
+   "path": "GAME1/ROUND1BR.PR2",
+   "size": 4742,
+   "sha256": "d5535acb869d14ed5a8a5e50f460357e29c02dbbf37cf88b47edb8cd8a9b2ee8"
+  },
+  {
+   "path": "GAME1/ROUND1BR.VH0",
+   "size": 2168,
+   "sha256": "2bb660072d7c26c33fb8597ae1b28f9416642b1b84714a4257a25f4d6f9bbe3d"
+  },
+  {
+   "path": "GAME1/ROUND2.COL",
+   "size": 1080,
+   "sha256": "c51e3ad55e55b54c7f1e247689ce48f8ede99b8f73e6752f43c345f590c6bdeb"
+  },
+  {
+   "path": "GAME1/ROUND2.DIR",
+   "size": 2160,
+   "sha256": "3f045c27aee607909d226b9f777b580b0b6f8502f6256ac1d220e7712620506b"
+  },
+  {
+   "path": "GAME1/ROUND2.PAL",
+   "size": 768,
+   "sha256": "0545189422aefa0948ddb8c0a891e63fd94811ec07f5fe8b76ddd22dbeedd0c1"
+  },
+  {
+   "path": "GAME1/ROUND21.MAP",
+   "size": 2048,
+   "sha256": "a51cfb42d9e185dbb88aa7b85766c0efccdcfd4f93993750d2ed5b28e8213231"
+  },
+  {
+   "path": "GAME1/ROUND21B.BRK",
+   "size": 29,
+   "sha256": "fde898b5f60b16ea9e51c1ef3c9996afea4706cb7a126808bf69e2f41527dc9c"
+  },
+  {
+   "path": "GAME1/ROUND22.MAP",
+   "size": 2048,
+   "sha256": "2dc8a2a00a5c6b05ef085d14083d5ff48b16552eb2a3d5340fe56f29afa25505"
+  },
+  {
+   "path": "GAME1/ROUND22B.BRK",
+   "size": 82,
+   "sha256": "e85f20c597eacbb5947a668bbe7d9d2bc3b155cabdd1629dc3fdba101598a00c"
+  },
+  {
+   "path": "GAME1/ROUND23.MAP",
+   "size": 2048,
+   "sha256": "de0ca127e7165e540ee1517fdf350c39778d77c033c2778f9f7bd60175ac857d"
+  },
+  {
+   "path": "GAME1/ROUND23B.BRK",
+   "size": 95,
+   "sha256": "82b041d2984a2e52910bcd9c31fef63d7e95c8a54537a26c36477cb8d42d68d9"
+  },
+  {
+   "path": "GAME1/ROUND24.MAP",
+   "size": 2048,
+   "sha256": "f4c35a1fd12f7831762c50bea3c4c87e33fc2b2e6fc43cd2b82bc675bd9ac726"
+  },
+  {
+   "path": "GAME1/ROUND24B.BRK",
+   "size": 79,
+   "sha256": "5a28c27ab987a164e11e69916a69da03dd27648a9ad23476727ae3155100b8f1"
+  },
+  {
+   "path": "GAME1/ROUND2BR.CT",
+   "size": 4320,
+   "sha256": "672f92e3a410f83a2c466e54be6bb559f94ee7e47c2c3185832427f32f410f59"
+  },
+  {
+   "path": "GAME1/ROUND2BR.LEV",
+   "size": 63,
+   "sha256": "b06de7468e5005670529ef0c6d304d579e59b78a3955e10c7a3148132fe5c85c"
+  },
+  {
+   "path": "GAME1/ROUND2BR.PR0",
+   "size": 3676,
+   "sha256": "8f0efe8769b5c6ed0097b99474b50f28ad2ffa842f4a7217e5e1b3e4b457adef"
+  },
+  {
+   "path": "GAME1/ROUND2BR.PR1",
+   "size": 3901,
+   "sha256": "310b04cfec989bf4be16b09931da492a2cb3e9135c38d1664a0fdacfd9aaa209"
+  },
+  {
+   "path": "GAME1/ROUND2BR.PR2",
+   "size": 2273,
+   "sha256": "498536b0f3c8bce9eb6d5b93d71a05a123cd2fcb85e7a12ae5c36b5a24979637"
+  },
+  {
+   "path": "GAME1/ROUND2BR.VH0",
+   "size": 1606,
+   "sha256": "8206923710081a5ba8ffcaf240231ce0ac43d32571e4d10ff8b2c40187560c85"
+  },
+  {
+   "path": "GAME1/ROUND3.COL",
+   "size": 1152,
+   "sha256": "24048aae6ac487f694a3e5083760b20cccee81f42db7c81c2bc76ab33298b579"
+  },
+  {
+   "path": "GAME1/ROUND3.DIR",
+   "size": 2304,
+   "sha256": "9300a41a614c6614bc53b15b568d7028767dbe1bfc7c769761813e0f36097d12"
+  },
+  {
+   "path": "GAME1/ROUND3.PAL",
+   "size": 768,
+   "sha256": "61922cb5efd0167db06c95e596898e414f71bdda9a9086dcde439b28f9a8f172"
+  },
+  {
+   "path": "GAME1/ROUND31.MAP",
+   "size": 2048,
+   "sha256": "18e25bf3b21d9cf40c4d155efada62a5cd412d6c11c24b92f48d3af967b02d45"
+  },
+  {
+   "path": "GAME1/ROUND31B.BRK",
+   "size": 134,
+   "sha256": "f485df861c20976068af27535542439a94de98ccf6e2efbde92097e9e03d5865"
+  },
+  {
+   "path": "GAME1/ROUND32.MAP",
+   "size": 2048,
+   "sha256": "72dabd9b0fccfcb6d26611ec221aa1cc83f1d204ccb8049f7b247364aeffece5"
+  },
+  {
+   "path": "GAME1/ROUND32B.BRK",
+   "size": 144,
+   "sha256": "38bf64e8e7caa0dee7cecd88e456b7aba539beaec7dd38e530baaf89a7ce732d"
+  },
+  {
+   "path": "GAME1/ROUND33.MAP",
+   "size": 2048,
+   "sha256": "7b0e2e00e4258a861c3c2a93e1a7534a70eb794ac2e20ada0014a1aaf93c95ba"
+  },
+  {
+   "path": "GAME1/ROUND33B.BRK",
+   "size": 156,
+   "sha256": "aaeadabb523d8ff9f63c03fc8554eb9634df637c5f0f0f6f95b5eafc6eebb821"
+  },
+  {
+   "path": "GAME1/ROUND3BR.CT",
+   "size": 4608,
+   "sha256": "af11019fbffe9cd2a3e7dd0624fec982341ee3831ea94fa86677fd2715f9f85d"
+  },
+  {
+   "path": "GAME1/ROUND3BR.LEV",
+   "size": 64,
+   "sha256": "41a4e46919d4fe086db25f201701d3db6d5310a0e1e3a81d117a14ee0230f5d9"
+  },
+  {
+   "path": "GAME1/ROUND3BR.PR0",
+   "size": 2536,
+   "sha256": "1f4aed4ae2e6056090bae2fc01fa34653a4e300ed2ce62c24ba1e45ba59476d4"
+  },
+  {
+   "path": "GAME1/ROUND3BR.PR1",
+   "size": 7529,
+   "sha256": "f948ea830cd1e7dcf3ea169373bec567e4a72a416dfbf7400b595eff47e129f2"
+  },
+  {
+   "path": "GAME1/ROUND3BR.PR2",
+   "size": 3015,
+   "sha256": "c27747109cd01f0924ec57506d3c5143b0d02d392bfc7115575b1adf5e173ce2"
+  },
+  {
+   "path": "GAME1/ROUND3BR.VH0",
+   "size": 2057,
+   "sha256": "befe0bf88fbf330cd62ce36b6dd21ee8d43a392c0212e98efbfb0ef74e289e85"
+  },
+  {
+   "path": "GAME1/ROUND4.COL",
+   "size": 1152,
+   "sha256": "5bd0cfebd65ac83575b8943995380f08596669f71f5af160868da07762a6c0be"
+  },
+  {
+   "path": "GAME1/ROUND4.DIR",
+   "size": 2304,
+   "sha256": "f4e540a5f6b0cdbcce7291af0735cf6a0d229ccec7e572ddb08ce5e5ec4f7108"
+  },
+  {
+   "path": "GAME1/ROUND4.PAL",
+   "size": 768,
+   "sha256": "f87234963331ace6e1c2cd4bc594b5c3e0b63e4d1a91e52a0614697f3ffd66ba"
+  },
+  {
+   "path": "GAME1/ROUND41.MAP",
+   "size": 2048,
+   "sha256": "e4414894056af2dde4e004cd4054d40c406d068d28f116488c111eb2ffadf93d"
+  },
+  {
+   "path": "GAME1/ROUND41B.BRK",
+   "size": 88,
+   "sha256": "0c359cb23b028087720d654e9d47a2640547d80f7d4cafee80aedb5eb2832da3"
+  },
+  {
+   "path": "GAME1/ROUND42.MAP",
+   "size": 2048,
+   "sha256": "d117a0a1a431f2a8414842a3dfd594892e3086e5dfa27b683fdd6e783c872417"
+  },
+  {
+   "path": "GAME1/ROUND42B.BRK",
+   "size": 81,
+   "sha256": "9aa9db080b2917953a0031f6d2722df987fab92ba515b540325c627c804ff1b1"
+  },
+  {
+   "path": "GAME1/ROUND43.MAP",
+   "size": 2048,
+   "sha256": "f43fc63170ad4eac5de217b54cd8df32fe2715b58e1fb71c273406cb9b19f48a"
+  },
+  {
+   "path": "GAME1/ROUND43B.BRK",
+   "size": 113,
+   "sha256": "3f5bbada781f41707b26335af396b9cfc30b297826d594cc9e7cb227e5d874d6"
+  },
+  {
+   "path": "GAME1/ROUND4BR.CT",
+   "size": 4608,
+   "sha256": "f4ee7fa63666c3598bce05706de7945ae63aeed7360c5451130aa06c0e710779"
+  },
+  {
+   "path": "GAME1/ROUND4BR.LEV",
+   "size": 64,
+   "sha256": "d9880d93b87ee8dc0d9339e69bd79e96c3019d321e30a293b86388e81054c6f9"
+  },
+  {
+   "path": "GAME1/ROUND4BR.PR0",
+   "size": 8943,
+   "sha256": "cdceec3afda9a4aaa819f8fdcffd6b22593b400cba471c7b594ad889b4f75976"
+  },
+  {
+   "path": "GAME1/ROUND4BR.PR1",
+   "size": 8749,
+   "sha256": "7afbb3e40692453b53facf312fe94a11414827e76e9afd3db943c8acb91c3fd7"
+  },
+  {
+   "path": "GAME1/ROUND4BR.PR2",
+   "size": 5580,
+   "sha256": "d9092e7d4b7cd729edb01e34f38efe8d62ca0a7bcfa95887e884215ff6b410eb"
+  },
+  {
+   "path": "GAME1/ROUND4BR.VH0",
+   "size": 2031,
+   "sha256": "ba2c2375ac0313694202af385f03ee1eaa708346f1c7361408a62d861587686d"
+  },
+  {
+   "path": "GAME1/ROUND5.COL",
+   "size": 1026,
+   "sha256": "46bbf157fc65e02aa4fe464b156e29a90248f171a79fd1f35f2e52dbf57849ac"
+  },
+  {
+   "path": "GAME1/ROUND5.DIR",
+   "size": 2034,
+   "sha256": "fe3753e0d1d0c94479ebfbc0f744989bde2ef9ad29f898990be0fa260e55ce2b"
+  },
+  {
+   "path": "GAME1/ROUND5.PAL",
+   "size": 768,
+   "sha256": "cf0fae2cbffe60e26671f96281e4eacf1e80149b14dd234ad2f194a370576919"
+  },
+  {
+   "path": "GAME1/ROUND51.MAP",
+   "size": 2048,
+   "sha256": "a798a5eb48900b35c19ed2a70c20bca5ac57bfa7faf145ee3ede614997d4bfe1"
+  },
+  {
+   "path": "GAME1/ROUND51B.BRK",
+   "size": 99,
+   "sha256": "59a325d46011cdecc531c805cbccab8effadda8949c393fcd6a4ae01592a21c8"
+  },
+  {
+   "path": "GAME1/ROUND52.MAP",
+   "size": 2048,
+   "sha256": "427a0a8c67d2a0902749dc9be080439525d26726cabeb8148f24635797cf002e"
+  },
+  {
+   "path": "GAME1/ROUND52B.BRK",
+   "size": 37,
+   "sha256": "69683ea52adcf49552e73fc36373ce4b617507d1e0a49b6761164f0e1de0f798"
+  },
+  {
+   "path": "GAME1/ROUND53.MAP",
+   "size": 2048,
+   "sha256": "c3db8f328f45b66766dd0cc90adc1fc91647e4b0e7f0b73815be59f1acb5f311"
+  },
+  {
+   "path": "GAME1/ROUND53B.BRK",
+   "size": 134,
+   "sha256": "e62041d0cf615e60da24c6e5113d7b77ff8a1e460caaa7607b2a184d892d0336"
+  },
+  {
+   "path": "GAME1/ROUND5BR.CT",
+   "size": 4104,
+   "sha256": "069ec96da02113daf0331aff759a7de7f0bad9cc39793be524dab5b72018252b"
+  },
+  {
+   "path": "GAME1/ROUND5BR.LEV",
+   "size": 57,
+   "sha256": "074c639795418de0b29f78f15b4c5d59993b40c2da4ad7179d13b7dace2d2685"
+  },
+  {
+   "path": "GAME1/ROUND5BR.PR0",
+   "size": 5517,
+   "sha256": "47032b45123030552d05dee142af3bc3a3f222b01e7fb1c8946d5aa73ab4db6b"
+  },
+  {
+   "path": "GAME1/ROUND5BR.PR1",
+   "size": 4155,
+   "sha256": "14a6ad40a67e28d102d98728aa60c82201725a6e08b582a03b1a331df600301e"
+  },
+  {
+   "path": "GAME1/ROUND5BR.VH0",
+   "size": 2030,
+   "sha256": "0b5d5f4d7bd14f248bc2c39b014f3fc72c2a9af77e5b0b942aae1669f6b60e94"
+  },
+  {
+   "path": "GAME1/ROUND6.COL",
+   "size": 1008,
+   "sha256": "e6bcf60e691c4064110c0280383ebb234ee34ed5a03259cc0e4c6b2dea9b3778"
+  },
+  {
+   "path": "GAME1/ROUND6.DIR",
+   "size": 2016,
+   "sha256": "84ccd4689fd011896b098ff7b858b0ac40d7e02976ff3b51511114a1100d5f43"
+  },
+  {
+   "path": "GAME1/ROUND6.PAL",
+   "size": 768,
+   "sha256": "335e11da65549cdd092b513196d1b7b76c9a217c66ff5b4ef126dc563b55f090"
+  },
+  {
+   "path": "GAME1/ROUND61.MAP",
+   "size": 2048,
+   "sha256": "d54998e7dbce89993a5eb78a127d989ae16d5a9723141a14a6729bca0dae423e"
+  },
+  {
+   "path": "GAME1/ROUND61B.BRK",
+   "size": 67,
+   "sha256": "fed165fd3421788be55577067b4a477de41ae5c83c7d07e653b5cf0793f0d73e"
+  },
+  {
+   "path": "GAME1/ROUND62.MAP",
+   "size": 2048,
+   "sha256": "414d4cfe63e7530850e6a1a5ad7379e5819050cc53b0c366c05ae73154280da1"
+  },
+  {
+   "path": "GAME1/ROUND62B.BRK",
+   "size": 115,
+   "sha256": "84a11532776d23547715bb5580fd4d48ff86fbe67ac298f6f3e113aa2656d496"
+  },
+  {
+   "path": "GAME1/ROUND63.MAP",
+   "size": 2048,
+   "sha256": "d52b74a51bff3099feedc881f140ddb5ca8bc3095c263488761edbff722ab21c"
+  },
+  {
+   "path": "GAME1/ROUND63B.BRK",
+   "size": 107,
+   "sha256": "1ff794eb19ec53ba0f9289fce6fae06a3152733d66e8a27002e55e95c9e14c21"
+  },
+  {
+   "path": "GAME1/ROUND6BR.CT",
+   "size": 4032,
+   "sha256": "b877831dc0859f2cf7340345979a8d61a58d4f3becff6070dda5c6f4360f4122"
+  },
+  {
+   "path": "GAME1/ROUND6BR.LEV",
+   "size": 56,
+   "sha256": "67d9fe04d84acf589b43d692862a55da07df41212eafc89620438bdd1abd4c4e"
+  },
+  {
+   "path": "GAME1/ROUND6BR.PR0",
+   "size": 5828,
+   "sha256": "c8f1b16ef3319c44629f0c73d9085a1cbd660440b90f5239f73dd1b5a535abe1"
+  },
+  {
+   "path": "GAME1/ROUND6BR.PR1",
+   "size": 5438,
+   "sha256": "7565e7614f8cd331b0337903daa94fc09be04fbe62a1b53ecfafabe4b1ecb270"
+  },
+  {
+   "path": "GAME1/ROUND6BR.PR2",
+   "size": 4122,
+   "sha256": "75ba3929059d0a1e933ea2172876b7f7d72a6b0aeb3227c2d84b3b5b476e3997"
+  },
+  {
+   "path": "GAME1/ROUND6BR.VH0",
+   "size": 1726,
+   "sha256": "1d95388fcca0b7b177a7b99d54aaa2be36e0d6ead29237e0569329da7695eac1"
+  },
+  {
+   "path": "GAME1/ROUND7.COL",
+   "size": 972,
+   "sha256": "e212ab82e3e899be8e85ab9892e3e46d963ae4b488d6f0d47ebca34c72196487"
+  },
+  {
+   "path": "GAME1/ROUND7.DIR",
+   "size": 1944,
+   "sha256": "c4e0f8394cd22c805b3ec57eda12c2df834aceed6f242bf694b684f9077a7e1b"
+  },
+  {
+   "path": "GAME1/ROUND7.PAL",
+   "size": 768,
+   "sha256": "afc0c4d55607b4f202f0a5d33af6ab5257f4c631399575a64d0a8e849df36a2b"
+  },
+  {
+   "path": "GAME1/ROUND71.MAP",
+   "size": 2048,
+   "sha256": "5ecdede31163acb6d35618c35011d597044ff5646da07662eeb5a1f0d8f5b932"
+  },
+  {
+   "path": "GAME1/ROUND71B.BRK",
+   "size": 47,
+   "sha256": "e60e0910c7e502a10635db1a1954fe9949940efddae641887a969d9b70d6e7c5"
+  },
+  {
+   "path": "GAME1/ROUND72.MAP",
+   "size": 2048,
+   "sha256": "65905b96979e096ed85d5e276cc607513c7e107da404a163216646d81e5a6474"
+  },
+  {
+   "path": "GAME1/ROUND72B.BRK",
+   "size": 68,
+   "sha256": "ec3be739c1d891cba07176a853668b129f773d5b3c6f0f2dd0e3235cda038ffd"
+  },
+  {
+   "path": "GAME1/ROUND73.MAP",
+   "size": 2048,
+   "sha256": "82b50f7f23f8b6fc824546a8b91da5302889e9a0008b92fb2e780c65737b0e3f"
+  },
+  {
+   "path": "GAME1/ROUND73B.BRK",
+   "size": 87,
+   "sha256": "68c71c22d459443da08c65f2f52d75ef0857394d3813b575ee1ba6f31ea1e66f"
+  },
+  {
+   "path": "GAME1/ROUND7BR.CT",
+   "size": 3888,
+   "sha256": "a0136cf5a40d9362d81a0b6461fdce9d2b7f68126ed155f73b0f91f6fa506545"
+  },
+  {
+   "path": "GAME1/ROUND7BR.LEV",
+   "size": 54,
+   "sha256": "c977ff0394464607c4c3b3de8060cb13da16eea6d484962a1bd1a8145e3fb3cb"
+  },
+  {
+   "path": "GAME1/ROUND7BR.PR0",
+   "size": 5244,
+   "sha256": "e725958d3628864e48b0d10282f8479d39be46caeba0beadb448d5cadf4ff019"
+  },
+  {
+   "path": "GAME1/ROUND7BR.PR1",
+   "size": 6001,
+   "sha256": "3a31853aa5d65f88a47591a692afd979ee7be6a71e75329bfd03b7032fef4672"
+  },
+  {
+   "path": "GAME1/ROUND7BR.VH0",
+   "size": 1521,
+   "sha256": "3b1cf70100225a007b238d7c2b895e85fc3953caa1df2bafca56eca8049330f1"
+  },
+  {
+   "path": "GAME1/ROUND8.COL",
+   "size": 882,
+   "sha256": "25cb4f283bdb6543bd457a7b1e5c343169f3e7fc307768a4dbb36233daa6f6a6"
+  },
+  {
+   "path": "GAME1/ROUND8.DIR",
+   "size": 2300,
+   "sha256": "f90ce0124c569ca92e3ad4f4aec54b3767bdcbca1f18d6fb7c89ac5f9332a473"
+  },
+  {
+   "path": "GAME1/ROUND8.PAL",
+   "size": 768,
+   "sha256": "222ad37ef2b6eafc010be5b9cc759e4ca483cf11d9928e4954be93c57fefbe1f"
+  },
+  {
+   "path": "GAME1/ROUND81.MAP",
+   "size": 2048,
+   "sha256": "5840d121b95f9f463800719a67061f81cfbc66adac118be4361298398f7ab2ea"
+  },
+  {
+   "path": "GAME1/ROUND81B.BRK",
+   "size": 56,
+   "sha256": "a01ef797bf3d831226c2dfb9d3bd4e3b848f8c80eff5b72d22b92f97c6ab8512"
+  },
+  {
+   "path": "GAME1/ROUND82.MAP",
+   "size": 2048,
+   "sha256": "d836c75e6223754cd2539b6e84db249738365e7f9c4b506451d558278d146c16"
+  },
+  {
+   "path": "GAME1/ROUND82B.BRK",
+   "size": 96,
+   "sha256": "8c844ed69004d83c5ae52451be36eee083690556569a6b6da5989380f4787370"
+  },
+  {
+   "path": "GAME1/ROUND83.MAP",
+   "size": 2048,
+   "sha256": "e0c6f0aca8a6d7efd563251780ce1623c31093b8fd549d6a871fc780253417e3"
+  },
+  {
+   "path": "GAME1/ROUND83B.BRK",
+   "size": 78,
+   "sha256": "19828ae17afca74fb2c2958c6ebc8a29defbe9aa5020dfbab895b2ceae089575"
+  },
+  {
+   "path": "GAME1/ROUND8BR.CT",
+   "size": 3528,
+   "sha256": "38c87659d8d52fd43edfd16c0d0bcfef9b5edf33f99cebfb66b8788d0d823544"
+  },
+  {
+   "path": "GAME1/ROUND8BR.LEV",
+   "size": 49,
+   "sha256": "1b6d52a83028081b69c3158f208ff8918e2be1e65084bb995b500d65a3ed782e"
+  },
+  {
+   "path": "GAME1/ROUND8BR.PR0",
+   "size": 8543,
+   "sha256": "dc8c0b61d7e4ade10773a99e7229a24350db897072804265c8ec012ce2284c7d"
+  },
+  {
+   "path": "GAME1/ROUND8BR.PR1",
+   "size": 3909,
+   "sha256": "0954555e6806a58c6ec5f57eb76600ffb4c5302aa832644c8559442bb6435b77"
+  },
+  {
+   "path": "GAME1/ROUND8BR.VH0",
+   "size": 941,
+   "sha256": "712f50262125d6c19043e8c5dd7b453c5ce8d8d40db66b51e360dc9caf32f582"
+  },
+  {
+   "path": "GAME1/ROUND9.COL",
+   "size": 1062,
+   "sha256": "e248b90772f7290186a19c848fd21946290c543aaf30b9e39315f6ffa8ae9d9d"
+  },
+  {
+   "path": "GAME1/ROUND9.DIR",
+   "size": 2124,
+   "sha256": "160b2a53302a790d42974d644db7d6da1f934beef30dc418bbfe542c195d38e3"
+  },
+  {
+   "path": "GAME1/ROUND9.PAL",
+   "size": 768,
+   "sha256": "3f777a9ec843b37285c022a47fa99fd12c06a3d05158576194ad5d6c7164b3c3"
+  },
+  {
+   "path": "GAME1/ROUND91.MAP",
+   "size": 2048,
+   "sha256": "12a7f692658ebb6c3328b5582de2d07a64724363172cde5b09921df005844381"
+  },
+  {
+   "path": "GAME1/ROUND92.MAP",
+   "size": 2048,
+   "sha256": "83536c7fadf2b8b8ea6186f1e39c378382fdd6732e2fe0288419383275d932c4"
+  },
+  {
+   "path": "GAME1/ROUND93.MAP",
+   "size": 2048,
+   "sha256": "71812f0b89deb3bcd01675ec4ba03762fa3cb1a53c392fc7e6c2bb4b07c2a582"
+  },
+  {
+   "path": "GAME1/ROUND9BR.CT",
+   "size": 4248,
+   "sha256": "159d0c5fb6ba84ce8da475bb109847aeb58a17ee03f327742dd8a5653599ffa1"
+  },
+  {
+   "path": "GAME1/ROUND9BR.LEV",
+   "size": 59,
+   "sha256": "84cf0474211f3bf3c23f9f84b0342eac0c32e403f74e711558c80f41e2e3b304"
+  },
+  {
+   "path": "GAME1/ROUND9BR.PR0",
+   "size": 8616,
+   "sha256": "80eb4b037af0bd48a10c6728a4d18231e6a14e5dec1aff7324f069b1d4e043f1"
+  },
+  {
+   "path": "GAME1/ROUND9BR.PR1",
+   "size": 10766,
+   "sha256": "f4c7616a9d1a4d2b6204476555588ea48b9044d22501637b13a966db23ac2c17"
+  },
+  {
+   "path": "GAME1/ROUND9BR.PR2",
+   "size": 3940,
+   "sha256": "367b651f8ee67302297d34412fe56146885e87a219615b0f26a021bd87fdac43"
+  },
+  {
+   "path": "GAME1/ROUND9BR.VH0",
+   "size": 3164,
+   "sha256": "98a9ac76a1dd529ed3e5a6c696696b54985dd02af437d4e798fd5d16cb416161"
+  },
+  {
+   "path": "GAME1/STRT_POS.BIN",
+   "size": 144,
+   "sha256": "338846440308d42c830353125a8f4d77fcea3488920b597feabaf9fbc47179db"
+  },
+  {
+   "path": "GFX1.GFX",
+   "size": 54273,
+   "sha256": "4343da99a4a1a9a27dd1db288909b4ca176571168b710ce20b23208fe8386ef7"
+  },
+  {
+   "path": "INSTALL.DAT",
+   "size": 5625,
+   "sha256": "84f0f4f849de85484740bb5d1ecc00a571e8d9fcec98cd62c74cfda48cdb39c1"
+  },
+  {
+   "path": "INSTALL.EXE",
+   "size": 13113,
+   "sha256": "98f08e6bba5ef68dd4994eb2b9c1e2bdf937131eb71a5458043a37fd6585fd85"
+  },
+  {
+   "path": "INTRO.PAL",
+   "size": 768,
+   "sha256": "932a7cf58ae70ab6125d41b0c61c905cfe9d105a35d7647e5217b270b0de97db"
+  },
+  {
+   "path": "MICRO.COM",
+   "size": 472,
+   "sha256": "9a50bf77c110a30ae8071b780ad65c285f652808f33cc8fe552b063a129f4f93"
+  },
+  {
+   "path": "MICRO.EXE",
+   "size": 28955,
+   "sha256": "606f2828eee3e2ba0958e3adf012e6071d5d1b23be48eff1eb418d25a2090f68"
+  },
+  {
+   "path": "MICRO.ICO",
+   "size": 1718,
+   "sha256": "ec9057c3f759de78509a91cf96950aef60a68cc1dcc3ef8e29abccc16ef5334b"
+  },
+  {
+   "path": "MICRO.PIF",
+   "size": 545,
+   "sha256": "083e744f8ebf61bf24917c2ca53331f1ca3ed7276081083eb1c362b66cb44a04"
+  },
+  {
+   "path": "Micro Machines (1994).exo",
+   "size": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "path": "SETTINGS.DAT",
+   "size": 32,
+   "sha256": "d061dc147c01d2b85be2d81ee7cf05a951dd934c8d51b633ad0eb5aa304aa531"
+  },
+  {
+   "path": "SETUP.EXE",
+   "size": 27552,
+   "sha256": "7175e8e59e20bb60af09a61f055e4c7cc0ff5b57fd859d7916f94c1b6f976af2"
+  },
+  {
+   "path": "SM.EXE",
+   "size": 4832,
+   "sha256": "dcb2aef37f252fa356d725ef12c7d567f84f25ba17803d12d75bc1149508abb4"
+  }
+ ]
+}

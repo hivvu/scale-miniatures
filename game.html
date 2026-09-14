@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Micro Machines</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; background: #14161a; color: #ddd; }
+  canvas { display: block; image-rendering: pixelated; background: #000; width: 960px; height: 600px; max-width: 100%; }
+  code { background: #2a2f3a; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1 style="font-size:18px">Micro Machines</h1>
+<p>Click the page first. Player one: <code>A</code>/<code>D</code> steer, <code>W</code>/<code>S</code> accelerate and brake, <code>Alt</code> fires and confirms.
+The arrows and <code>Enter</code> do the same until a two-player game starts, and then become player two's own keys
+(<code>Left</code>/<code>Right</code>/<code>Up</code>/<code>Down</code> and <code>Insert</code>). <code>Esc</code> goes back.
+A click skips the Codemasters intro, and <code>?nointro</code> leaves it out altogether.
+<code>Space</code> pauses a race. The game starts on GAME OPTIONS, where <code>F1</code>-<code>F4</code> set the
+controls, <code>F5</code> redefines the driving keys, <code>F7</code> calibrates a gamepad and
+<code>Return</code> plays; what you choose there is remembered. A gamepad counts as a joystick (steer with the
+stick, first button accelerates, second brakes) and the mouse needs a click to lock the pointer.</p>
+<canvas id="screen" width="320" height="200"></canvas>
+<p id="status"></p>
+<script type="module" src="/src/app/game/main.ts"></script>
+</body>
+</html>

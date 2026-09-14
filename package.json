@@ -1,0 +1,24 @@
+{
+  "name": "scale-miniatures",
+  "version": "0.0.1",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "engines": { "node": "^20.0.0 || >=22.0.0" },
+  "type": "module",
+  "description": "Micro Machines (PC, 1994) rewritten in TypeScript from the disassembly, running natively in the browser. No emulator. Bring your own copy.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.engine.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  }
+}

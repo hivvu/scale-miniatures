@@ -1,0 +1,212 @@
+{
+ "lz/BITSFILE.PH0": {
+  "consumed": 3611,
+  "length": 26048,
+  "sha256": "d5b66273aa4376abd930bd59ec9934d2cbd6abe1fb6eb788903b572886add29c"
+ },
+ "lz/COMPRESS.PI0": {
+  "consumed": 8177,
+  "length": 49152,
+  "sha256": "536733007399b2ed0d7583ce4ddf6e0b4f643c5927165dc3d6a7f359c44ffdd6"
+ },
+ "lz/COMPRESS.PI1": {
+  "consumed": 7707,
+  "length": 49152,
+  "sha256": "3c705741ed19663b48ae8c413935fcccc79932f691a1fccdbb412635bac3877c"
+ },
+ "lz/COMPRESS.PI2": {
+  "consumed": 6130,
+  "length": 49152,
+  "sha256": "5cb2fc5af3b311c2607907717b5585d2e56b908637978470ae640d7c192f5364"
+ },
+ "lz/COMPRESS.PI3": {
+  "consumed": 7270,
+  "length": 49152,
+  "sha256": "01702fb578cc559b1c610439f0657a4329cc4a9411d9365c048c05178f14e229"
+ },
+ "lz/COMPRESS.PI4": {
+  "consumed": 10174,
+  "length": 49152,
+  "sha256": "c12e0ba8dee9f26d8a8f77a8f40eb122f6f450b8a031afc095aae5dd2ff6402b"
+ },
+ "lz/COMPRESS.PI5": {
+  "consumed": 10925,
+  "length": 49152,
+  "sha256": "0d695c018128b31ebb551e89232f4fbe60d831da5440140d101671b59b8a312b"
+ },
+ "lz/COMPRESS.PI6": {
+  "consumed": 4057,
+  "length": 40960,
+  "sha256": "ad91d531467a3c595cf9458563dd50053b7aa1964e53ba8ec7faaab81fe69030"
+ },
+ "lz/ROUND1BR.PR0": {
+  "consumed": 7755,
+  "length": 49152,
+  "sha256": "24c0d529375aa9e563fc20ec561b91f262bb75f07121bce2ac9a02a516e7b450"
+ },
+ "lz/ROUND1BR.PR1": {
+  "consumed": 10064,
+  "length": 49152,
+  "sha256": "2017344f917686ab2dbdd72336c565899494973eeddb1856f5566ba640f4b2ba"
+ },
+ "lz/ROUND1BR.PR2": {
+  "consumed": 4742,
+  "length": 32000,
+  "sha256": "b3c0909673e072ae3fbe6f59c408ccb58447d8d48f7d2de129bda3e4d5e11864"
+ },
+ "lz/ROUND1BR.VH0": {
+  "consumed": 2168,
+  "length": 13824,
+  "sha256": "082e5f8a665054749e354b33aa8e26fa8417c03525aabe17149a89e84f3ec5e1"
+ },
+ "lz/ROUND2BR.PR0": {
+  "consumed": 3676,
+  "length": 49152,
+  "sha256": "91f1752e5039756bf694959b79c19afe01fa95b0c7ebc7d3a6c20155fbffe541"
+ },
+ "lz/ROUND2BR.PR1": {
+  "consumed": 3901,
+  "length": 49152,
+  "sha256": "bc1e227ecfc7c3f824b8bb6452dd77f7163307dc2c36026d8dfa16e2961699b6"
+ },
+ "lz/ROUND2BR.PR2": {
+  "consumed": 2273,
+  "length": 15104,
+  "sha256": "d28831e585ada19c6433c04a6085f4cfb13717a564b65c88952919850222311d"
+ },
+ "lz/ROUND2BR.VH0": {
+  "consumed": 1606,
+  "length": 9216,
+  "sha256": "0f7c1905664abc3ac40ec3c83d5fec9bb37ffd8cecfe4083acd3cac4eed5f65b"
+ },
+ "lz/ROUND3BR.PR0": {
+  "consumed": 2536,
+  "length": 49152,
+  "sha256": "af2565ce0066dab34f261a3f55e844a11441cee50c9146bce8c63cb57b68b79a"
+ },
+ "lz/ROUND3BR.PR1": {
+  "consumed": 7529,
+  "length": 49152,
+  "sha256": "b7164cc7150fc67afd850835c2a49c029294e46dd93c80d353382bc48925f034"
+ },
+ "lz/ROUND3BR.PR2": {
+  "consumed": 3015,
+  "length": 22528,
+  "sha256": "38696ea4751b2a18c3ec3ffa73127c835300b292b30078c839db5220afd3698c"
+ },
+ "lz/ROUND3BR.VH0": {
+  "consumed": 2057,
+  "length": 12672,
+  "sha256": "6c1ab4c344d1e6adb441e45798cd373afd901d34436d0e660b04879ca2440334"
+ },
+ "lz/ROUND4BR.PR0": {
+  "consumed": 8943,
+  "length": 49152,
+  "sha256": "a0e1616209c9588ea32bd452d326a3b084aacb2d92c1e4a641d0469adafe123a"
+ },
+ "lz/ROUND4BR.PR1": {
+  "consumed": 8749,
+  "length": 49152,
+  "sha256": "8ec2997c5c67f74833b6b93ced1e1244f356a13b6f60dcdafa6ee4041074fe3b"
+ },
+ "lz/ROUND4BR.PR2": {
+  "consumed": 5580,
+  "length": 31232,
+  "sha256": "55aa5bb95ba4b563e406ccbb860d2dc7dd394a7bd732739636a0efc92bf4fdd3"
+ },
+ "lz/ROUND4BR.VH0": {
+  "consumed": 2031,
+  "length": 11520,
+  "sha256": "f87989b840e6045198c9ab9a090fb145ac400ea40a4478df1298d0309f086105"
+ },
+ "lz/ROUND5BR.PR0": {
+  "consumed": 5517,
+  "length": 49152,
+  "sha256": "d422eabf337c3fa1af0e5fbf049e9d9a084e8557aa4bea32aef2e548eb5b41fd"
+ },
+ "lz/ROUND5BR.PR1": {
+  "consumed": 4155,
+  "length": 30720,
+  "sha256": "3051bad32d9ad2d84d8aadc6696bb0f6188b5165ec90a5140eb78eb1eea7275f"
+ },
+ "lz/ROUND5BR.VH0": {
+  "consumed": 2030,
+  "length": 12672,
+  "sha256": "193a1466abe46056c72303c7be93cbebfd3d4b8973d34fb3c8058728acab8fd6"
+ },
+ "lz/ROUND6BR.PR0": {
+  "consumed": 5828,
+  "length": 49152,
+  "sha256": "b9f1619d5a08b8497e03662826dd473b37336dc91dfdcfe1952031932eb7684c"
+ },
+ "lz/ROUND6BR.PR1": {
+  "consumed": 5438,
+  "length": 49152,
+  "sha256": "da97d0031ad58b60e54fad8c38fdcfbbf353d1981af7c3dad99b78394ac52858"
+ },
+ "lz/ROUND6BR.PR2": {
+  "consumed": 4122,
+  "length": 25856,
+  "sha256": "8e1fd41118916010a33d1d27bfc14794241754c328349e0a41a22cc2492471bf"
+ },
+ "lz/ROUND6BR.VH0": {
+  "consumed": 1726,
+  "length": 10368,
+  "sha256": "c1cf51aa703fbf0da126b16fc67148ddf343c0dc20adfcfe4a51f1e64ee5c53e"
+ },
+ "lz/ROUND7BR.PR0": {
+  "consumed": 5244,
+  "length": 49152,
+  "sha256": "b3dbb84ace9bf871f0300cb2460b70d5ec8209e956659d9727c0f52e28556d16"
+ },
+ "lz/ROUND7BR.PR1": {
+  "consumed": 6001,
+  "length": 39424,
+  "sha256": "8f4067fbcdb68a0fb088ef2ecc64e489091e8772e11270dbf89e3f21b57a7869"
+ },
+ "lz/ROUND7BR.VH0": {
+  "consumed": 1521,
+  "length": 10368,
+  "sha256": "62fa65aec6fadb7707ade883e89895e84db442e5a712e32c1ee27671878af47e"
+ },
+ "lz/ROUND8BR.PR0": {
+  "consumed": 8543,
+  "length": 49152,
+  "sha256": "2500a1cbe4bfa87d8907d71d51384b258246cbb67114bac542d2a84123dcab78"
+ },
+ "lz/ROUND8BR.PR1": {
+  "consumed": 3909,
+  "length": 23808,
+  "sha256": "4544507e42e0b3a13bd8ca48f2af2b265d84017f98cdcababa5e04df90d18e20"
+ },
+ "lz/ROUND8BR.VH0": {
+  "consumed": 941,
+  "length": 10304,
+  "sha256": "11424325268f9265471bd779f0e3e494f1b3c9d07db5b8f6a3d3eda7daab36c1"
+ },
+ "lz/ROUND9BR.PR0": {
+  "consumed": 8616,
+  "length": 49152,
+  "sha256": "bab7476de1e77b6a22aae60c5555a66fbf9e7cdae62715b895678c2d988ebede"
+ },
+ "lz/ROUND9BR.PR1": {
+  "consumed": 10766,
+  "length": 49152,
+  "sha256": "53c3c9a5873abd207d8e7e5f2c188738590e586edb5a0cddf3ca225b930697b2"
+ },
+ "lz/ROUND9BR.PR2": {
+  "consumed": 3940,
+  "length": 28416,
+  "sha256": "65192fceffa17026c954162410789be2b4f0767c33279012a1ee52ad784e9780"
+ },
+ "lz/ROUND9BR.VH0": {
+  "consumed": 3164,
+  "length": 24000,
+  "sha256": "2d9f1e72095ee8b22d31d968456d0b318846757c6a1390f8dd8c191827154bdd"
+ },
+ "pklite/MICRO.EXE.image": {
+  "length": 82493,
+  "relocs": 279,
+  "sha256": "4b98eba9710769903f82f1e75c4fca8aaa0db618cb9b5f8169c5a67965bfa0c0"
+ }
+}

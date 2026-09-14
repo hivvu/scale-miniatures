@@ -1,0 +1,41 @@
+# The game's own data, and anything derived from it: never committed.
+# No trailing slash on MicroMac: with one, git would match a real folder but not a symlink to one.
+MicroMac
+*.zip
+*.exo
+build/
+re/ghidra/
+re/exports/
+re/unpacked/
+re/dos-tools/
+
+# Captures and dumps
+*.dro
+*.avi
+*.wav
+*.raw
+*.RAW
+MEMDUMP.BIN
+
+# Tooling
+node_modules/
+dist/
+coverage/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+*.log
+
+# Editors, tools and OS
+.DS_Store
+.claude/
+.vscode/
+.idea/
+*.swp
+
+# Safety net: nothing here needs credentials, and nothing here ever should
+.env
+.env.*
+*.pem
+*.key

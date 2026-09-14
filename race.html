@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Micro Machines — race (engine test)</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; background: #14161a; color: #ddd; }
+  canvas { display: block; image-rendering: pixelated; background: #000; width: 960px; height: 600px; max-width: 100%; }
+  code { background: #2a2f3a; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1 style="font-size:18px">Race (engine test)</h1>
+<p>Click the page, then <code>W</code> accelerate, <code>S</code> brake/reverse, <code>A</code>/<code>D</code> steer, <code>Alt</code> fire. Arrows work too.</p>
+<canvas id="screen" width="320" height="200"></canvas>
+<p id="status"></p>
+<script type="module" src="/src/app/race/main.ts"></script>
+</body>
+</html>
