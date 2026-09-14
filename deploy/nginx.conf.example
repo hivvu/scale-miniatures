@@ -1,0 +1,53 @@
+# Scale Miniatures behind nginx.
+#
+# Three things have to be served: the built site, the poll service, and (only if you want the page to hand
+# the game over rather than ask each visitor for their own folder) your copy of the game.
+#
+#   npm run build                 -> dist/
+#   node server/poll.mjs          -> 127.0.0.1:8787
+#
+# And in front of it, cloudflared: see cloudflared.yml.example beside this file.
+#
+# ABOUT THE /MicroMac/ BLOCK. Serving those files means sending somebody else's game to whoever asks. On a
+# machine only your own network can reach that is your own copy and nobody else's business. On something
+# the internet can reach it is distribution, and the game is not out of copyright: it was Codemasters' and
+# is Electronic Arts' now. Comment the block out and the page falls back to asking each visitor to point at
+# their own installed copy, which never leaves their machine.
+
+server {
+    # Behind a Cloudflare Tunnel, so it only ever listens on the loopback: nothing at home is exposed.
+    # Serving this directly instead? Then listen 80 and put a certificate in front of it.
+    listen 127.0.0.1:8080;
+    server_name scaleminiatures.fun www.scaleminiatures.fun;
+
+    root /srv/scale-miniatures/dist;
+    index index.html;
+
+    # The built site. Hashed assets can be cached hard; the HTML cannot.
+    location / {
+        try_files $uri $uri/ =404;
+    }
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    # The poll. SM_POLL_PROXY=1 on the service so it sees the real address here.
+    location /api/ {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Your own installed copy of the game, which is what lets the page start on its own. See the warning
+    # at the top of this file. Keep this directory OUTSIDE dist/, because a rebuild empties dist/.
+    location /MicroMac/ {
+        alias /srv/micro-machines/;            # the directory with MICRO.EXE and GAME1 in it
+        add_header Cache-Control "public, max-age=604800";
+        autoindex off;
+    }
+}

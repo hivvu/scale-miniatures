@@ -23,8 +23,28 @@ function serveGameFiles(): Plugin {
   };
 }
 
+/** Vite only copies `public/`, and there is no `public/`. The manifest is the index a served copy of the
+ *  game is read through, and it is the one piece of game metadata this repository keeps (paths, sizes and
+ *  hashes, no content at all), so a build has to carry it. */
+function emitManifest(): Plugin {
+  return {
+    name: 'emit-manifest', apply: 'build',
+    generateBundle() {
+      const p = join(process.cwd(), 'manifest.json');
+      if (existsSync(p)) this.emitFile({ type: 'asset', fileName: 'manifest.json', source: readFileSync(p) });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [serveGameFiles()],
+  plugins: [serveGameFiles(), emitManifest()],
   server: { port: 3000 },
-  build: { rollupOptions: { input: { viewer: 'viewer.html', race: 'race.html', game: 'game.html' } } },
+  // Where the built site will live. Everything the pages ask for is relative to it (see GameFiles.fromServer),
+  // so `SM_BASE=/micromachines/ npm run build` is all a deploy under a subfolder needs.
+  base: process.env['SM_BASE'] ?? '/',
+  build: {
+    rollupOptions: {
+      input: { index: 'index.html', viewer: 'viewer.html', race: 'race.html', game: 'game.html' },
+    },
+  },
 });

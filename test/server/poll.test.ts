@@ -1,0 +1,83 @@
+/**
+ * The poll service's rules. The HTTP shell around them is thin enough to read; what is worth pinning is
+ * what it accepts, what it refuses and how it counts, because those are what a stranger can poke at.
+ */
+import { describe, it, expect } from 'vitest';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { OPTIONS, parseVote, tally, readVotes, makeLimiter } from '../../server/poll.mjs';
+
+const first = OPTIONS[0]!.id, second = OPTIONS[1]!.id;
+
+describe('what counts as a vote', () => {
+  it('takes a set of known choices', () => {
+    expect(parseVote({ choices: [first, second] })).toEqual({ vote: { choices: [first, second] } });
+  });
+
+  it('keeps a comment, trimmed and capped', () => {
+    expect(parseVote({ choices: [], comment: '  more tracks  ' })).toEqual({ vote: { choices: [], comment: 'more tracks' } });
+    const long = parseVote({ choices: [first], comment: 'x'.repeat(900) });
+    expect(long.vote?.comment).toHaveLength(500);
+  });
+
+  it('leaves the comment out entirely when there is none', () => {
+    expect(parseVote({ choices: [first], comment: '   ' })).toEqual({ vote: { choices: [first] } });
+  });
+
+  it('collapses a repeated choice instead of counting it twice', () => {
+    expect(parseVote({ choices: [first, first, second] }).vote).toEqual({ choices: [first, second] });
+  });
+
+  it('refuses anything it does not recognise', () => {
+    expect(parseVote({ choices: ['a-pony'] }).error).toMatch(/unknown choice/);
+    expect(parseVote({ choices: [42] }).error).toMatch(/unknown choice/);
+    expect(parseVote({ choices: 'four-players' }).error).toMatch(/must be an array/);
+    expect(parseVote({ choices: [], comment: 5 }).error).toMatch(/must be a string/);
+    expect(parseVote({ choices: [] }).error).toMatch(/empty/);
+    expect(parseVote(null).error).toMatch(/expected an object/);
+    expect(parseVote([first]).error).toMatch(/expected an object/);
+    expect(parseVote({ choices: new Array(OPTIONS.length + 1).fill(first) }).error).toMatch(/too many/);
+  });
+});
+
+describe('counting', () => {
+  it('reports every option, including the ones nobody picked', () => {
+    const t = tally([{ choices: [first] }, { choices: [first, second] }]);
+    expect(t.votes).toBe(2);
+    expect(t.counts[first]).toBe(2);
+    expect(t.counts[second]).toBe(1);
+    expect(Object.keys(t.counts).sort()).toEqual(OPTIONS.map(o => o.id).sort());
+  });
+
+  it('counts nothing as zeroes rather than as an empty object', () => {
+    expect(tally([]).votes).toBe(0);
+    expect(Object.values(tally([]).counts).every(n => n === 0)).toBe(true);
+  });
+});
+
+describe('reading the file back', () => {
+  it('returns nothing for a file that is not there', async () => {
+    expect(await readVotes(join(tmpdir(), 'no-such-poll-file.ndjson'))).toEqual([]);
+  });
+
+  it('skips a half-written line and keeps the rest', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'poll-'));
+    const file = join(dir, 'votes.ndjson');
+    writeFileSync(file, `{"choices":["${first}"]}\n{"choices":[\n\n{"choices":["${second}"]}\n`);
+    const votes = await readVotes(file);
+    expect(votes).toHaveLength(2);
+    expect(tally(votes).counts[second]).toBe(1);
+  });
+});
+
+describe('the rate limit', () => {
+  it('lets a few through and then stops', () => {
+    const allow = makeLimiter(2, 1000);
+    expect(allow('1.2.3.4', 0)).toBe(true);
+    expect(allow('1.2.3.4', 10)).toBe(true);
+    expect(allow('1.2.3.4', 20)).toBe(false);
+    expect(allow('5.6.7.8', 20)).toBe(true);      // somebody else is not affected
+    expect(allow('1.2.3.4', 2000)).toBe(true);    // and the window moves on
+  });
+});

@@ -1,0 +1,43 @@
+# The self-hosted GitHub runner that deploys this site.
+#
+# The machine it runs on has nothing listening on the internet, so nothing can be pushed to it. This pulls
+# instead: it asks GitHub for work, and when a commit lands on main it builds the site and copies it into
+# the stack directory next door. Same shape as the other runners on that machine, down to the label.
+#
+#   mkdir -p /mnt/data/bigstorage/docker/scale-miniatures/runner-config
+#   cd /mnt/data/bigstorage/docker/scale-miniatures      # put this file here
+#   install -m 600 /dev/null .env                        # then write RUNNER_TOKEN into it
+#   docker compose up -d
+#
+# The token is the repository's runner registration token: GitHub, the repository, Settings, Actions,
+# Runners, New self-hosted runner. It is short-lived and only used once, to register; after that the runner
+# keeps its own credentials in runner-config. When it eventually needs re-registering, fetch a new one.
+#
+# A personal access token in ACCESS_TOKEN instead of RUNNER_TOKEN would let it re-register itself for ever,
+# at the cost of keeping a longer-lived secret on the machine. The other runners here use RUNNER_TOKEN, so
+# this one does too.
+
+services:
+  runner:
+    image: myoung34/github-runner:latest
+    container_name: scale-miniatures-gh-runner
+    restart: unless-stopped
+    environment:
+      REPO_URL: https://github.com/hivvu/scale-miniatures
+      RUNNER_NAME: scale-miniatures-homelab
+      RUNNER_SCOPE: repo
+      LABELS: scale-miniatures
+      RUNNER_WORKDIR: /tmp/runner/work
+      RUNNER_TOKEN: ${RUNNER_TOKEN:?put RUNNER_TOKEN in .env}
+      DISABLE_AUTO_UPDATE: 'true'
+      DISABLE_AUTOMATIC_DEREGISTRATION: 'true'
+    security_opt:
+      - label:disable
+    volumes:
+      # so the job can run `docker compose` against the stack
+      - /var/run/docker.sock:/var/run/docker.sock
+      # the runner's own registration, so it does not have to register again on every restart
+      - ./runner-config:/runner-config
+      # the stack, at the same path inside and out, which is what the workflow's STACK points at
+      - /mnt/data/bigstorage/scale-miniatures:/mnt/data/bigstorage/scale-miniatures
+      - /tmp/runner:/tmp/runner

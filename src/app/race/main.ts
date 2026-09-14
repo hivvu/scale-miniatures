@@ -33,7 +33,7 @@ window.addEventListener('blur', () => { keys = 0; });
 
 async function main(): Promise<void> {
   status.textContent = 'loading…';
-  const files = await GameFiles.fromHttp('/MicroMac/', '/manifest.json');
+  const files = await GameFiles.fromServer();
   const q = params;
   const round = Number(q.get('round') ?? 2), track = Number(q.get('track') ?? 1);
   const names = raceFileNames(round, track);

@@ -37,6 +37,16 @@ stick, first button accelerates, second brakes) and the mouse needs a click to l
 the names in brackets.
 Double-click the picture for fullscreen too. <code>Esc</code> leaves fullscreen; press it again to go back
 a screen in the game.</span></p>
+<div id="needfiles" hidden>
+  <p><strong>This page is not serving the game.</strong> Point it at your own installed copy of Micro Machines
+  and it will start. The folder is read in your browser and stays on your machine: nothing is uploaded.</p>
+  <p><button id="pickfolder" type="button">Choose your game folder…</button>
+  <input id="folder" type="file" webkitdirectory multiple hidden>
+  <span id="why" style="opacity:.6"></span></p>
+  <p style="opacity:.6">It has to be the <em>installed</em> directory, the one with <code>MICRO.EXE</code> and a
+  <code>GAME1</code> folder in it. A ZIP of floppy images is not enough on its own: run the original
+  <code>INSTALL.EXE</code> once under DOSBox and keep what it produces.</p>
+</div>
 <p id="status"></p>
 <script type="module" src="/src/app/game/main.ts"></script>
 </body>

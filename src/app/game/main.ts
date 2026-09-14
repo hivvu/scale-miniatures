@@ -4,6 +4,7 @@
  * segment is shared by the menus, the sequence and the race, as in the original.
  */
 import { GameFiles } from '../../hal/fs/GameFiles';
+import { fromServerIfServed, fromFolderInput } from '../../hal/fs/openGameFiles';
 import { SCANCODE } from '../../hal/input/scancodes';
 import { BrowserDevices } from '../../hal/input/Analogue';
 import { DOS_VIEWPORT, makeViewport, type Viewport } from '../../engine/viewport';
@@ -141,9 +142,29 @@ function setViewport(vp: Viewport): void {
 
 const TICK = 1 / 70.086;
 
+/**
+ * The game's own files. A server that keeps a copy beside the page hands them over and nothing is asked of
+ * anybody; otherwise the visitor points at their own installed folder, which is the only way a static host
+ * can work without redistributing somebody else's game.
+ */
+async function openFiles(): Promise<GameFiles> {
+  const served = await fromServerIfServed();
+  if (served) return served;
+  const box = document.querySelector('#needfiles') as HTMLElement | null;
+  const input = document.querySelector('#folder') as HTMLInputElement | null;
+  if (!box || !input) throw new Error('this page does not serve the game files and has no folder picker');
+  const why = document.querySelector('#why');
+  document.querySelector('#pickfolder')?.addEventListener('click', () => input.click());
+  status.textContent = '';
+  box.hidden = false;
+  const files = await fromFolderInput(input, msg => { if (why) why.textContent = msg; });
+  box.hidden = true;
+  return files;
+}
+
 async function main(): Promise<void> {
   status.textContent = 'loading…';
-  const files = await GameFiles.fromHttp('/MicroMac/', '/manifest.json');
+  const files = await openFiles();
   const exe = unpackPklite(await files.read('MICRO.EXE')).image;
 
   // one data segment for the whole session, as the game has
