@@ -20,12 +20,9 @@ import { fileURLToPath } from 'node:url';
 
 /** The things people can ask for. Ids are stored, labels are only ever shown. */
 export const OPTIONS = [
-  { id: 'four-players', label: 'Four players on one machine' },
-  { id: 'online', label: 'Play online against somebody else' },
+  { id: 'four-players', label: 'Play with 4 players on one machine' },
+  { id: 'online', label: 'Play online' },
   { id: 'any-race', label: 'Pick any race, instead of the championship order' },
-  { id: 'rewind', label: 'Rewind a few seconds after a mistake' },
-  { id: 'championships', label: 'Custom championships' },
-  { id: 'ghosts', label: 'Best times and a ghost car to race' },
 ];
 
 const IDS = new Set(OPTIONS.map(o => o.id));
