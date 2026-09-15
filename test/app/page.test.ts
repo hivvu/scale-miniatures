@@ -16,6 +16,14 @@ describe('index.html', () => {
     expect(html).toMatch(/\[hidden\]\s*\{\s*display:\s*none\s*!important/);
   });
 
+  it('points at icon files rather than a data: URI', () => {
+    // /favicon.ico and /apple-touch-icon.png are asked for by name, by crawlers and by phones, whatever the
+    // page declares. Both were 404ing while the page carried its icon inline.
+    expect(html).toContain('href="/favicon.ico"');
+    expect(html).toContain('href="/apple-touch-icon.png"');
+    expect(html).not.toContain('rel="icon" href="data:');
+  });
+
   it('has exactly one h1, and every element the engine reaches for', () => {
     expect(html.match(/<h1[\s>]/g) ?? []).toHaveLength(1);
     for (const id of ['screen', 'stage', 'status', 'viewport', 'fullscreen', 'needfiles', 'folder']) {
