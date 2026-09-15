@@ -60,7 +60,12 @@
   .btn.small:hover { background: var(--purple); }
 
   /* hero */
-  #hero { background: var(--cyan); position: relative; padding-bottom: clamp(64px, 7vw, 104px); }
+  #hero { background: var(--cyan); position: relative; padding-bottom: clamp(64px, 7vw, 104px); overflow: hidden; }
+  /* whatever is driving across the hero: behind everything, and never in the way of a click */
+  #hero-canvas { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%;
+                 pointer-events: none; image-rendering: pixelated; }
+  #hero > .wrap { position: relative; z-index: 1; }
+  #hero .chequer { z-index: 1; }
   #hero .wrap { display: flex; flex-direction: column; align-items: center; gap: clamp(24px, 3.5vw, 44px); text-align: center; }
   /* the name of the site is a heading, and happens to be drawn rather than set */
   #hero h1 { margin: 0; width: 100%; max-width: 940px; line-height: 0; }
@@ -203,6 +208,7 @@
 <body>
 
 <section id="hero">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div class="wrap">
     <h1>
       <picture>

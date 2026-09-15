@@ -6,6 +6,7 @@
  * `src/app/game/main.ts` looks its elements up as soon as it is evaluated: the canvas, the stage, the view
  * picker, the status line and the folder picker.
  */
+import { startHero } from './hero';
 
 /** Vite's deployment base, read defensively: this file is also compiled without Vite's types. */
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
@@ -13,6 +14,10 @@ const API = `${BASE}api/poll`;
 const VOTED = 'micromachines/voted';
 
 const $ = <T extends HTMLElement>(sel: string): T | null => document.querySelector<T>(sel);
+
+// ---------------------------------------------------------------- the hero
+const hero = $('#hero'), heroCanvas = $<HTMLCanvasElement>('#hero-canvas');
+if (hero && heroCanvas) startHero(hero, heroCanvas, `${BASE}mm-boat.png`, `${BASE}mm-duck.png`);
 
 // ---------------------------------------------------------------- the game
 const startButton = $<HTMLButtonElement>('#start');
