@@ -23,6 +23,8 @@ export const OPTIONS = [
   { id: 'four-players', label: 'Play with 4 players on one machine' },
   { id: 'online', label: 'Play online' },
   { id: 'any-race', label: 'Pick any race, instead of the championship order' },
+  { id: 'mobile-controls', label: 'Mobile controls' },
+  { id: 'micro-machines-2', label: 'Do Micro Machines 2!' },
 ];
 
 const IDS = new Set(OPTIONS.map(o => o.id));

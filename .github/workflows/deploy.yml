@@ -59,7 +59,14 @@ jobs:
 
           # The poll service and the two config files. MicroMac/ is deliberately untouched: it is not in
           # this repository, it lives only on that machine, and a deploy must never stand on it.
+          #
+          # Node reads poll.mjs once, when it starts. Copying a new one in changes nothing at all until the
+          # process goes round again, so the deploy would report success while the site kept serving the old
+          # poll. Tell the next step whether there is anything to restart for.
+          pollbefore=$(find "$STACK/server" -type f -exec sha256sum {} + 2>/dev/null | sort | sha256sum || true)
           rsync -a --delete server/ "$STACK/server/"
+          pollafter=$(find "$STACK/server" -type f -exec sha256sum {} + | sort | sha256sum)
+          [ "$pollbefore" = "$pollafter" ] && echo "POLL_CHANGED=0" >> "$GITHUB_ENV" || echo "POLL_CHANGED=1" >> "$GITHUB_ENV"
 
           # A single-file bind mount follows the inode, so replacing the Caddyfile leaves the running
           # container holding the old one and a reload changes nothing at all, silently. Write in place,
@@ -80,6 +87,10 @@ jobs:
           set -euo pipefail
           # No --remove-orphans: it once decided this job's own runner was an orphan and killed it.
           docker compose up -d
+          if [ "${POLL_CHANGED:-0}" = "1" ]; then
+            # A restart is enough: the directory is mounted, so the new file is found by name on the way up.
+            docker compose restart poll
+          fi
           if [ "${CADDY_CHANGED:-0}" = "1" ]; then
             # Recreate, not reload: see the note in the previous step about the mount.
             docker compose up -d --force-recreate web
