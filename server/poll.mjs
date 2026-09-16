@@ -29,6 +29,8 @@ export const OPTIONS = [
 
 const IDS = new Set(OPTIONS.map(o => o.id));
 const MAX_COMMENT = 500;
+/** A browser's own id, so a second answer replaces its first. Opaque, and never used for anything else. */
+const VOTER = /^[A-Za-z0-9_-]{1,64}$/;
 const MAX_BODY = 4096;
 const PER_IP = 5;                       // votes allowed from one address per window
 const WINDOW_MS = 60 * 60 * 1000;
@@ -40,7 +42,7 @@ const WINDOW_MS = 60 * 60 * 1000;
  */
 export function parseVote(body) {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return { error: 'expected an object' };
-  const { choices, comment } = body;
+  const { choices, comment, voter } = body;
   if (!Array.isArray(choices)) return { error: 'choices must be an array' };
   if (choices.length > OPTIONS.length) return { error: 'too many choices' };
   for (const c of choices) {
@@ -48,16 +50,32 @@ export function parseVote(body) {
   }
   const unique = [...new Set(choices)];
   if (comment !== undefined && typeof comment !== 'string') return { error: 'comment must be a string' };
+  if (voter !== undefined && (typeof voter !== 'string' || !VOTER.test(voter))) return { error: 'voter must be a short plain id' };
   const text = (comment ?? '').trim().slice(0, MAX_COMMENT);
   if (unique.length === 0 && text === '') return { error: 'an empty vote' };
-  return { vote: text === '' ? { choices: unique } : { choices: unique, comment: text } };
+  const vote = { choices: unique };
+  if (text !== '') vote.comment = text;
+  if (voter !== undefined) vote.voter = voter;
+  return { vote };
 }
 
-/** How many votes each option has, counting every option so the page never has to guess a missing key. */
+/**
+ * How many votes each option has, counting every option so the page never has to guess a missing key.
+ *
+ * One answer per browser: a later vote carrying the same `voter` replaces the earlier one, so changing your
+ * answer moves it instead of adding another. The file still keeps every line, superseded ones included, so
+ * nothing anybody wrote is thrown away. Votes recorded before this existed have no id and each stand alone.
+ */
 export function tally(votes) {
   const counts = Object.fromEntries(OPTIONS.map(o => [o.id, 0]));
-  for (const v of votes) for (const c of v.choices) if (c in counts) counts[c]++;
-  return { options: OPTIONS, counts, votes: votes.length };
+  const latest = new Map();                  // Map.set keeps the first position and takes the last value
+  const anonymous = [];
+  for (const v of votes) {
+    if (typeof v.voter === 'string') latest.set(v.voter, v); else anonymous.push(v);
+  }
+  const counted = [...anonymous, ...latest.values()];
+  for (const v of counted) for (const c of v.choices) if (c in counts) counts[c]++;
+  return { options: OPTIONS, counts, votes: counted.length };
 }
 
 /** Every vote in the file. A line that will not parse is skipped: one bad line must not lose the rest. */

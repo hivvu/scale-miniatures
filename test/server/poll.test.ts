@@ -41,6 +41,34 @@ describe('what counts as a vote', () => {
   });
 });
 
+describe('changing your answer', () => {
+  it('keeps a voter id when there is one, and refuses a silly one', () => {
+    expect(parseVote({ choices: [first], voter: 'abc-123_XYZ' }).vote).toEqual({ choices: [first], voter: 'abc-123_XYZ' });
+    expect(parseVote({ choices: [first] }).vote).not.toHaveProperty('voter');
+    expect(parseVote({ choices: [first], voter: 'x'.repeat(65) }).error).toMatch(/voter/);
+    expect(parseVote({ choices: [first], voter: 'has spaces' }).error).toMatch(/voter/);
+    expect(parseVote({ choices: [first], voter: 7 }).error).toMatch(/voter/);
+  });
+
+  it("replaces a browser's earlier answer instead of adding another", () => {
+    const t = tally([
+      { choices: [first], voter: 'aa' },
+      { choices: [second], voter: 'bb' },
+      { choices: [second], voter: 'aa' },        // aa changed its mind
+    ]);
+    expect(t.votes).toBe(2);
+    expect(t.counts[first]).toBe(0);
+    expect(t.counts[second]).toBe(2);
+  });
+
+  it('leaves answers from before this existed alone', () => {
+    // The ones already in the file have no id, and two people who both answered the same way are two people.
+    const t = tally([{ choices: [first] }, { choices: [first] }, { choices: [first], voter: 'aa' }]);
+    expect(t.votes).toBe(3);
+    expect(t.counts[first]).toBe(3);
+  });
+});
+
 describe('counting', () => {
   it('reports every option, including the ones nobody picked', () => {
     const t = tally([{ choices: [first] }, { choices: [first, second] }]);

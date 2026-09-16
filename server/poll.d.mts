@@ -2,7 +2,7 @@
 import type { Server } from 'node:http';
 
 export interface PollOption { id: string; label: string }
-export interface Vote { choices: string[]; comment?: string }
+export interface Vote { choices: string[]; comment?: string; voter?: string }
 export interface Tally { options: PollOption[]; counts: Record<string, number>; votes: number }
 
 export const OPTIONS: PollOption[];

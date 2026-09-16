@@ -12,6 +12,8 @@ import { startHero } from './hero';
 const BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
 const API = `${BASE}api/poll`;
 const VOTED = 'micromachines/voted';
+const VOTER = 'micromachines/voter';
+const PICKED = 'micromachines/picked';
 
 const $ = <T extends HTMLElement>(sel: string): T | null => document.querySelector<T>(sel);
 
@@ -84,7 +86,32 @@ const form = $<HTMLFormElement>('#poll');
 const choices = $('#choices');
 const message = $('#pollmsg');
 const comment = $<HTMLTextAreaElement>('#comment');
+const submit = form?.querySelector<HTMLButtonElement>('button[type=submit]') ?? null;
 const picked = new Set<string>();
+let changeButton: HTMLButtonElement | undefined;
+let lastPoll: Poll | undefined;
+
+/** Anything kept here is a convenience for this browser alone, and a private window simply goes without. */
+function remember(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch { /* private window */ }
+}
+function recall(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+/**
+ * A random id for this browser, made once and kept. It lets a second answer replace the first instead of
+ * adding another to the count. It is not an identity: nothing is derived from it, nobody else ever sees it,
+ * and in a private window there is none, so that vote just cannot be changed later.
+ */
+function voterId(): string | undefined {
+  const kept = recall(VOTER);
+  if (kept !== null) return kept;
+  const made = (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    .replace(/[^A-Za-z0-9_-]/g, '');
+  remember(VOTER, made);
+  return recall(VOTER) ?? undefined;
+}
 
 function optionButton(o: { id: string; label: string }, i: number): HTMLButtonElement {
   const b = document.createElement('button');
@@ -123,9 +150,31 @@ function showResults(poll: Poll): void {
     pctOf(b).textContent = `${Math.round(n / total * 100)}%${picked.has(o.id) ? ' · yours' : ''}`;
     choices.append(b);
   });
-  comment?.remove();
-  form?.querySelector('button[type=submit]')?.remove();
+  // Hidden, not removed: the answer can be changed, and then these have to come back.
+  if (comment) comment.hidden = true;
+  if (submit) submit.hidden = true;
+  offerChange();
   if (message) message.textContent = `${poll.votes} ${poll.votes === 1 ? 'answer' : 'answers'} so far, thank you`;
+}
+
+/** A way back to the choices for somebody who has already answered, which is also how they meet new ones. */
+function offerChange(): void {
+  if (!form) return;
+  if (!changeButton) {
+    changeButton = document.createElement('button');
+    changeButton.type = 'button';
+    changeButton.className = 'btn small';
+    changeButton.textContent = 'Change your answer';
+    changeButton.addEventListener('click', () => {
+      if (changeButton) changeButton.hidden = true;
+      if (comment) comment.hidden = false;
+      if (submit) submit.hidden = false;
+      if (message) message.textContent = '';
+      if (lastPoll) showChoices(lastPoll);
+    });
+    form.querySelector('#pollfoot')?.prepend(changeButton);
+  }
+  changeButton.hidden = false;
 }
 
 /** Before voting: the counts are deliberately not shown, so nobody is nudged by what is already winning. */
@@ -134,6 +183,11 @@ function showChoices(poll: Poll): void {
   choices.textContent = '';
   poll.options.forEach((o, i) => {
     const b = optionButton(o, i);
+    if (picked.has(o.id)) {                    // coming back to change an answer: show what it was
+      b.classList.add('on');
+      fillOf(b).style.width = '100%';
+      pctOf(b).textContent = 'picked';
+    }
     b.addEventListener('click', () => {
       const on = !picked.has(o.id);
       if (on) picked.add(o.id); else picked.delete(o.id);
@@ -156,11 +210,12 @@ async function loadPoll(): Promise<void> {
     $('#whats-next')?.remove();                // nothing behind this page to collect answers: no section
     return;
   }
-  let voted = false;
-  try { voted = localStorage.getItem(VOTED) !== null; } catch { /* private window */ }
-  if (voted) { showResults(poll); return; }
-  showChoices(poll);
+  lastPoll = poll;
+  // What was picked last time, so the results can mark them and a change starts from them.
+  try { for (const id of JSON.parse(recall(PICKED) ?? '[]') as string[]) picked.add(id); } catch { /* not ours */ }
 
+  // Attached before the view is chosen, and not inside the branch: somebody who has already answered can
+  // come back through "Change your answer", and a form with no submit handler reloads the page instead.
   form.addEventListener('submit', ev => {
     ev.preventDefault();
     const text = comment?.value.trim() ?? '';
@@ -170,18 +225,27 @@ async function loadPoll(): Promise<void> {
     }
     if (message) message.textContent = 'sending';
     const choiceList = [...picked];
+    const voter = voterId();
     void fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(text === '' ? { choices: choiceList } : { choices: choiceList, comment: text }),
+      body: JSON.stringify({
+        choices: choiceList,
+        ...(text === '' ? {} : { comment: text }),
+        ...(voter === undefined ? {} : { voter }),
+      }),
     })
       .then(async r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        try { localStorage.setItem(VOTED, new Date().toISOString()); } catch { /* private window */ }
-        showResults(await r.json() as Poll);
+        remember(VOTED, new Date().toISOString());
+        remember(PICKED, JSON.stringify(choiceList));
+        lastPoll = await r.json() as Poll;
+        showResults(lastPoll);
       })
       .catch((e: unknown) => { if (message) message.textContent = `could not send that: ${String(e)}`; });
   });
+
+  if (recall(VOTED) !== null) showResults(poll); else showChoices(poll);
 }
 
 void loadPoll();
