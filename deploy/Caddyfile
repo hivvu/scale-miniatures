@@ -14,6 +14,12 @@
 		redir https://scaleminiatures.fun{uri} permanent
 	}
 
+	# The relay, above the poll: `handle /api/*` below is a catch-all and would swallow this. Caddy carries
+	# the WebSocket upgrade through reverse_proxy on its own, so there is nothing else to say about it.
+	handle /api/relay* {
+		reverse_proxy relay:8788
+	}
+
 	# The poll service, the other container in the stack.
 	handle /api/* {
 		reverse_proxy poll:8787

@@ -26,15 +26,9 @@ import { inputHandlers, settingsBytes } from './setup';
 export type Request = 'tick' | 'championship' | 'race';
 export type Task<T = void> = Generator<Request, T, void>;
 
-/** int 8 (fn 489c): the counters every wait loop spins on, and the 32-tick blink flag. */
-export function timerTick(d: DataSegment): void {
-  d.add16(0x28F7, 1);
-  d.add16(0x0002, 1);
-  d.add16(0x261F, 1);
-  const n = (d.r8(0x26D0) + 1) & 0xFF;
-  d.w8(0x26D0, n);
-  if (n >= 0x20) { d.w8(0x26CF, d.r8(0x26CF) ^ 1); d.w8(0x26D0, 0); }
-}
+// fn 489c now lives in tick.ts, because the race needs it too. Re-exported so that everything which has
+// always imported it from here still can.
+export { timerTick } from './tick';
 
 /** fn 2770 tail: leaving GAME OPTIONS hands the two configured devices to cars 0 and 1 (fn 29f5). */
 export function applyOptionsInputs(d: DataSegment): void {

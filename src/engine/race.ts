@@ -85,8 +85,14 @@ function mouseInput(d: DataSegment, dev: AnalogueDevices): number {
  *
  * The head of the routine reads the game port once per frame, for whichever sticks fn 2d00 found in use
  * ([108c] bit 0 = A, bit 1 = B), and leaves the counts in [108d..1094] and the inverted buttons in [1095].
+ *
+ * `supplied` is the one thing the original has no equivalent of: a car whose byte is handed in from outside
+ * rather than read off a device. It is how a player on another machine drives a car, and it wins over the
+ * source word, because over the wire the byte has already been resolved. Returning undefined for a car
+ * leaves it exactly as the game had it.
  */
-export function pollInput(d: DataSegment, ai?: (bx: number) => number, dev?: AnalogueDevices): void {
+export function pollInput(d: DataSegment, ai?: (bx: number) => number, dev?: AnalogueDevices,
+                          supplied?: (car: number) => number | undefined): void {
   const used = d.r8(0x108C);
   if (used === 1 || used === 2 || used === 3) {
     const j = dev ? dev.joysticks() : STICK_CENTRED;
@@ -97,8 +103,10 @@ export function pollInput(d: DataSegment, ai?: (bx: number) => number, dev?: Ana
   const keys1 = d.r8(0x107D), keys2 = d.r8(0x107C);
   CARS.forEach((bx, i) => {
     const src = d.r16(0x2658 + i * 2);
+    const net = supplied?.(i);
     let al: number;
-    if (src === 4) al = keys1;
+    if (net !== undefined) al = net;
+    else if (src === 4) al = keys1;
     else if (src === 5) al = keys2;
     else if (src === 1) al = joystickA(d);
     else if (src === 2) al = joystickB(d);
@@ -118,6 +126,8 @@ export class Race {
   sound?: SoundPort;
   /** Set by the page when a car is driven by a joystick or the mouse (fn 2d5b reads them itself). */
   devices?: AnalogueDevices;
+  /** Set by the netplay driver: the input byte for a car that somebody else is driving. See pollInput. */
+  supplied?: (car: number) => number | undefined;
   /** What fn 851f / 855a / 8634 want drawn this frame (head to head only); read by RaceRenderer.banners. */
   banner: { src: number; x: number; y: number } | undefined;
   /** fn 35f0: 0 = racing, 1 = the Paused! banner is up, 2 = waiting for a key, 3 = the debug keys. */
@@ -256,7 +266,7 @@ export class Race {
   /** Per-step input poll. keys1/keys2 = the two keyboard input bytes ([107d]/[107c]). */
   fn2d5bInput(keys1: number, keys2 = 0): void {
     this.d.w8(0x107D, keys1); this.d.w8(0x107C, keys2);
-    pollInput(this.d, bx => this.fn5429Ai(bx), this.devices);
+    pollInput(this.d, bx => this.fn5429Ai(bx), this.devices, this.supplied);
   }
 
   // ---------------------------------------------------------------- fn 4aee physics

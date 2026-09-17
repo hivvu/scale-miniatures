@@ -41,7 +41,14 @@ export default defineConfig({
   // The page asks its own origin for /api/poll, so in dev that has to go somewhere. Run `npm run poll`
   // beside `npm run dev` and the whole thing works locally, voting included; without it the fetch fails and
   // the page drops the section, which is also worth being able to see.
-  server: { port: 3000, proxy: { '/api': 'http://127.0.0.1:8787' } },
+  // The relay entry has to come first: Vite matches these in order and `/api` would otherwise swallow it.
+  server: {
+    port: 3000,
+    proxy: {
+      '/api/relay': { target: 'ws://127.0.0.1:8788', ws: true },
+      '/api': 'http://127.0.0.1:8787',
+    },
+  },
   // Where the built site will live. Everything the pages ask for is relative to it (see GameFiles.fromServer),
   // so `SM_BASE=/micromachines/ npm run build` is all a deploy under a subfolder needs.
   base: process.env['SM_BASE'] ?? '/',
