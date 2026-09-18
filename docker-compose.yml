@@ -29,6 +29,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       - poll
+      - relay
 
   poll:
     image: node:22-alpine
@@ -40,11 +41,29 @@ services:
     environment:
       SM_POLL_PORT: "8787"
       SM_POLL_FILE: /data/votes.ndjson
+      # What people write after a race online, kept apart from the poll's five answers.
+      SM_FEEDBACK_FILE: /data/feedback.ndjson
       # Caddy is in front, so the rate limit has to read the forwarded address and not Caddy's own.
       SM_POLL_PROXY: "1"
     volumes:
       - ./server:/app/server:ro
       - ./data:/data
+
+  # Playing online. No volume: a relay that remembers nothing is a relay that cannot be wrong about
+  # anything, and a room only has to outlive the two people in it.
+  relay:
+    image: node:22-alpine
+    container_name: scale-miniatures-relay
+    restart: unless-stopped
+    working_dir: /app
+    command: node server/relay.mjs
+    user: "1000:1000"
+    environment:
+      SM_RELAY_PORT: "8788"
+      # Caddy is in front, so the address in the log is the visitor's and not Caddy's.
+      SM_RELAY_PROXY: "1"
+    volumes:
+      - ./server:/app/server:ro
 
   cloudflared:
     image: cloudflare/cloudflared:latest

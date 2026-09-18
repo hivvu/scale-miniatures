@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Micro Machines — netcode lab</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; background: #14161a; color: #ddd; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { max-width: 70ch; line-height: 1.5; }
+  .screens { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+  .screen h2 { font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+               color: #8a93a6; margin: 0 0 6px; }
+  canvas { display: block; image-rendering: pixelated; background: #000; width: 480px; height: auto; max-width: 100%; }
+  .wire { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; padding: 12px 0; }
+  label { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { width: 180px; }
+  button { font: inherit; padding: 6px 12px; background: #2a2f3a; color: #ddd;
+           border: 1px solid #3c4453; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #3c4453; }
+  #sync { font-weight: 700; letter-spacing: .1em; padding: 4px 10px; border-radius: 4px; }
+  .ok { background: #16391f; color: #7ee08a; }
+  .bad { background: #4a1616; color: #ff8080; }
+  #status { font-family: ui-monospace, monospace; font-size: 12px; color: #8a93a6; line-height: 1.7;
+            word-break: break-all; }
+  code { background: #2a2f3a; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Netcode lab</h1>
+<p>
+  Two machines running the same race, both in this tab, with a wire between them you can make as bad as you
+  like. Drive the left one: <code>W</code> accelerate, <code>S</code> brake, <code>A</code>/<code>D</code>
+  steer. The right one is the other player's screen, which hears about your keys however late the slider
+  says and guesses in the meantime.
+</p>
+<p>
+  The two hashes at the bottom cover all 64 KB of game state on each side. They must stay equal. <b>Corrupt
+  one</b> breaks the right-hand machine on purpose, to show that a desync is actually noticed rather than
+  hoped against.
+</p>
+
+<div class="wire">
+  <label>Latency <input id="lag" type="range" min="0" max="400" step="10" value="60"><span id="lagv"></span></label>
+  <label>Packet loss <input id="loss" type="range" min="0" max="30" step="1" value="0"><span id="lossv"></span></label>
+  <button id="corrupt" type="button">Corrupt one</button>
+  <span id="sync" class="ok">IN SYNC</span>
+</div>
+
+<div class="screens">
+  <div class="screen"><h2>You</h2><canvas id="a" width="320" height="200"></canvas></div>
+  <div class="screen"><h2>Them</h2><canvas id="b" width="320" height="200"></canvas></div>
+</div>
+
+<p id="status"></p>
+<script type="module" src="/src/app/netlab/main.ts"></script>
+</body>
+</html>

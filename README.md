@@ -143,6 +143,10 @@ Then open:
 * http://localhost:3000/game.html for the game on its own, with no page around it.
 * http://localhost:3000/race.html?round=2&track=1 to drop straight into one track.
 * http://localhost:3000/viewer.html to browse the decoded assets.
+* http://localhost:3000/online.html to play up to three other people (a playlist of tracks, 3 to 40 laps,
+  two to four cars), and
+  http://localhost:3000/netlab.html to watch the netcode cope with a bad connection. Both want the relay
+  running beside the dev server: `npm run relay`.
 
 `npm test` runs the test suite and `npm run typecheck` the compiler. Only the tests want the game files,
 and they skip cleanly without them; point them at another copy with `MM_DATA_DIR=/path/to/MicroMac`.
@@ -154,6 +158,11 @@ Deploying under a subfolder works too, as long as the build knows: `SM_BASE=/mic
 and everything the pages ask for follows that base.
 
 Two things live outside that build, on purpose.
+
+**The relay.** `npm run relay` (`server/relay.mjs`) carries the bytes between the people playing online. It
+is four letter rooms and nothing else: it never looks inside a packet, keeps nothing on disk, and a room
+disappears with the people in it. The race itself runs identically on every machine, so the relay has
+nothing to be right or wrong about beyond who it forwards to.
 
 **The game itself.** The dev server mirrors your `MicroMac` folder at `/MicroMac/`, and it is the only thing
 that does: the plugin is `apply: 'serve'`, so a build contains no game data at all. A host that serves that

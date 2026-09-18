@@ -89,7 +89,8 @@ jobs:
           docker compose up -d
           if [ "${POLL_CHANGED:-0}" = "1" ]; then
             # A restart is enough: the directory is mounted, so the new file is found by name on the way up.
-            docker compose restart poll
+            # Both services read their file once at startup, so both have to go round.
+            docker compose restart poll relay
           fi
           if [ "${CADDY_CHANGED:-0}" = "1" ]; then
             # Recreate, not reload: see the note in the previous step about the mount.
@@ -102,7 +103,9 @@ jobs:
       - name: Check it is actually answering
         run: |
           set -euo pipefail
-          for path in / /manifest.json /api/poll; do
+          # /online is the clean URL the page is linked as: if the Caddy rewrite is wrong it answers 404,
+          # and that is worth failing the deploy over rather than finding out from a visitor.
+          for path in / /online /manifest.json /api/poll /api/relay; do
             code=$(docker exec scale-miniatures-web wget -qO- -S "http://localhost$path" 2>&1 >/dev/null \
               | grep -oE 'HTTP/1.1 [0-9]+' | head -1 | grep -oE '[0-9]+$')
             echo "  $path -> $code"

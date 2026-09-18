@@ -7,6 +7,11 @@ export interface Tally { options: PollOption[]; counts: Record<string, number>; 
 
 export const OPTIONS: PollOption[];
 export function parseVote(body: unknown): { vote: Vote; error?: undefined } | { vote?: undefined; error: string };
+export const MAX_FEEDBACK: number;
+export type Feedback =
+  | { note: { text: string; room?: string }; error?: undefined }
+  | { note?: undefined; error: string };
+export function parseFeedback(body: unknown): Feedback;
 export function tally(votes: Vote[]): Tally;
 export function readVotes(file: string): Promise<Vote[]>;
 export function makeLimiter(perWindow?: number, windowMs?: number): (ip: string, now?: number) => boolean;
