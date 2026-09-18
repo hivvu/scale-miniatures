@@ -31,6 +31,9 @@ const IDS = new Set(OPTIONS.map(o => o.id));
 const MAX_COMMENT = 500;
 /** A browser's own id, so a second answer replaces its first. Opaque, and never used for anything else. */
 const VOTER = /^[A-Za-z0-9_-]{1,64}$/;
+/** Free text from the online lobby, which is a longer thing than a poll comment. */
+export const MAX_FEEDBACK = 2000;
+const ROOM = /^[A-Za-z]{4}$/;
 const MAX_BODY = 4096;
 const PER_IP = 5;                       // votes allowed from one address per window
 const WINDOW_MS = 60 * 60 * 1000;
@@ -57,6 +60,27 @@ export function parseVote(body) {
   if (text !== '') vote.comment = text;
   if (voter !== undefined) vote.voter = voter;
   return { vote };
+}
+
+/**
+ * What somebody wrote after a race online. Kept apart from the poll: the poll is a question with five
+ * answers and this is whatever they felt like saying, and mixing the two would make both harder to read.
+ *
+ * The room code is optional and is only there so a report of something going wrong can be lined up with
+ * what the relay saw at the time. Nothing else about who they are is asked for or recorded.
+ */
+export function parseFeedback(body) {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return { error: 'expected an object' };
+  const { text, room } = body;
+  if (typeof text !== 'string') return { error: 'text must be a string' };
+  const said = text.trim().slice(0, MAX_FEEDBACK);
+  if (said === '') return { error: 'nothing was written' };
+  if (room !== undefined && (typeof room !== 'string' || !ROOM.test(room))) {
+    return { error: 'a room code is four letters' };
+  }
+  const note = { text: said };
+  if (room !== undefined) note.room = room.toUpperCase();
+  return { note };
 }
 
 /**
@@ -109,6 +133,7 @@ export function makeLimiter(perWindow = PER_IP, windowMs = WINDOW_MS) {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FILE = process.env.SM_POLL_FILE ?? join(here, 'votes.ndjson');
+const NOTES = process.env.SM_FEEDBACK_FILE ?? join(here, 'feedback.ndjson');
 const PORT = Number(process.env.SM_POLL_PORT ?? 8787);
 const ORIGIN = process.env.SM_POLL_ORIGIN;
 const TRUST_PROXY = process.env.SM_POLL_PROXY === '1';
@@ -147,11 +172,38 @@ function readBody(req) {
 export async function start() {
   const votes = await readVotes(FILE);
   const allow = makeLimiter();
+  const allowNote = makeLimiter(5);
+
+  /** POST /api/feedback: whatever somebody wants to say, straight to a file and nothing else. */
+  const feedback = async (req, res) => {
+    if (req.method === 'OPTIONS' && ORIGIN) {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': ORIGIN,
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      return res.end();
+    }
+    if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
+    if (!allowNote(addressOf(req))) return send(res, 429, { error: 'that is enough for now, thank you' });
+    let body;
+    try { body = JSON.parse(await readBody(req)); } catch { return send(res, 400, { error: 'that is not JSON' }); }
+    const { note, error } = parseFeedback(body);
+    if (error) return send(res, 400, { error });
+    try {
+      await appendFile(NOTES, `${JSON.stringify({ ...note, at: new Date().toISOString() })}\n`);
+    } catch (e) {
+      console.error('poll: could not write feedback:', e);
+      return send(res, 500, { error: 'could not record that' });
+    }
+    return send(res, 200, { ok: true });
+  };
   console.log(`poll: ${votes.length} votes in ${FILE}, listening on ${PORT}`);
 
   const server = createServer((req, res) => {
     void (async () => {
       const path = (req.url ?? '').split('?')[0];
+      if (path === '/api/feedback') return feedback(req, res);
       if (path !== '/api/poll') return send(res, 404, { error: 'not found' });
 
       if (req.method === 'OPTIONS' && ORIGIN) {

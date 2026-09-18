@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Play online — Scale Miniatures</title>
+<meta name="theme-color" content="#29ABE2">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/fonts.css">
+<style>
+  :root {
+    --ink: #111014; --cream: #F4F1E4; --cyan: #29ABE2; --pink: #EC008C;
+    --yellow: #FFE800; --purple: #6B1F9E;
+  }
+  * { box-sizing: border-box; }
+  /* The browser's own `[hidden] { display: none }` loses to any rule of ours that sets `display`, and
+     several below do. Without this, hiding the lobby when the flag drops would change nothing on screen. */
+  [hidden] { display: none !important; }
+  html, body { margin: 0; padding: 0; background: var(--ink); }
+  body { font-family: Barlow, Helvetica, Arial, sans-serif; color: var(--ink); overflow-x: hidden; }
+  section { padding: clamp(40px, 5vw, 72px) clamp(20px, 5vw, 72px); border-bottom: 6px solid var(--ink); }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1, h2 { font-family: Anton, Impact, sans-serif; text-transform: uppercase; line-height: .95; margin: 0; }
+  p { text-wrap: pretty; }
+
+  /* the shared poster furniture: a hard border and a hard offset shadow, never a blur */
+  .card { background: var(--cream); border: 5px solid var(--ink); box-shadow: 10px 10px 0 var(--ink); }
+  .tag { display: inline-block; padding: 6px 12px; background: var(--ink); color: var(--yellow);
+         font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+         letter-spacing: .2em; text-transform: uppercase; }
+  .btn { cursor: pointer; display: inline-block; border: 5px solid var(--ink); padding: 15px 38px;
+         background: var(--yellow); color: var(--ink); font-family: Anton, Impact, sans-serif;
+         font-size: clamp(17px, 1.7vw, 23px); letter-spacing: .06em; text-transform: uppercase;
+         text-decoration: none; box-shadow: 8px 8px 0 var(--ink); transition: box-shadow .1s, transform .1s; }
+  .btn:hover:not([disabled]) { background: var(--pink); color: #fff; box-shadow: 4px 4px 0 var(--ink);
+                               transform: translate(4px, 4px); }
+  .btn[disabled] { opacity: .5; cursor: default; transform: none; box-shadow: 8px 8px 0 var(--ink); }
+  .btn.go { background: var(--pink); color: #fff; }
+  .btn.go:hover:not([disabled]) { background: var(--purple); color: #fff; }
+  .btn.alt { background: var(--cream); }
+  .btn.alt:hover:not([disabled]) { background: var(--purple); color: #fff; }
+  .btn.small { padding: 10px 20px; font-size: clamp(14px, 1.2vw, 17px); background: var(--pink); color: #fff;
+               box-shadow: 5px 5px 0 var(--ink); border-width: 4px; }
+  .btn.small:hover:not([disabled]) { background: var(--purple); }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: .1em; }
+  code { font-family: 'IBM Plex Mono', monospace; font-size: .92em; background: var(--yellow);
+         border: 2px solid var(--ink); padding: 0 5px; }
+  .chequer { position: absolute; left: 0; right: 0; bottom: 0; height: 24px;
+             background: repeating-conic-gradient(var(--ink) 0% 25%, var(--yellow) 0% 50%) 0 0/32px 32px;
+             animation: slide 2.4s linear infinite; }
+  @keyframes slide { from { background-position: 0 0; } to { background-position: 64px 0; } }
+  @media (prefers-reduced-motion: reduce) { .chequer { animation: none; } }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 20; background: var(--ink); border-bottom: 6px solid var(--pink); }
+  nav div { max-width: 1180px; margin: 0 auto; padding: 0 clamp(12px, 4vw, 40px);
+            display: flex; flex-wrap: wrap; gap: clamp(2px, 1.5vw, 8px); justify-content: center; }
+  nav a { padding: 16px 14px; color: var(--yellow); text-decoration: none; font-family: 'IBM Plex Mono', monospace;
+          font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+  nav a:hover { color: var(--ink); background: var(--yellow); }
+  /* The new thing gets a flag in its corner, and the room for it: without the extra padding the badge
+     would sit over whatever the next item is, and the items wrap on a narrow window. */
+  nav a.flagged { position: relative; padding-right: 46px; }
+  nav .badge { position: absolute; top: 9px; right: 8px; background: var(--pink); color: #fff;
+               font-size: 9px; font-weight: 700; letter-spacing: .14em; padding: 2px 5px; }
+  nav a.flagged:hover .badge { background: var(--ink); color: var(--yellow); }
+  nav a.here { color: var(--ink); background: var(--yellow); }
+
+  /* head */
+  #head { background: var(--cyan); position: relative; padding-bottom: clamp(56px, 6vw, 88px);
+          overflow: hidden; }
+  /* whatever is driving across the top: behind everything, and never in the way of a click */
+  #hero-canvas { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%;
+                 pointer-events: none; image-rendering: pixelated; }
+  #head > .wrap { position: relative; z-index: 1; }
+  #head .chequer { z-index: 1; }
+  #head .wrap { display: flex; flex-direction: column; align-items: center; gap: clamp(20px, 3vw, 34px);
+                text-align: center; }
+  /* Two lines, one treatment: the second is the same yellow, the same shadow and the same size as the
+     first. The second line is half again as long, so the type scales on its own width and not the page's,
+     which keeps both lines inside the wrap on a phone. */
+  #head h1 { font-size: clamp(34px, 6.4vw, 84px); color: var(--yellow); text-shadow: 6px 6px 0 var(--ink);
+             line-height: 1.02; }
+  #head .friends { display: block; }
+  #head .lede { max-width: 720px; margin: 0; padding: clamp(18px, 2.4vw, 26px) clamp(20px, 3vw, 32px);
+                font-size: clamp(16px, 1.45vw, 20px); line-height: 1.55; font-weight: 500; }
+
+  /* the room */
+  #play { background: var(--yellow); }
+  #play h2 { font-size: clamp(30px, 4.5vw, 56px); margin-bottom: clamp(18px, 2.4vw, 28px); }
+  .panel { padding: clamp(20px, 2.6vw, 32px); }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  label { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+          letter-spacing: .16em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 10px; }
+  select, input[type=text], input[type=number] {
+    font: inherit; font-size: 16px; font-weight: 600; padding: 9px 12px; background: #fff;
+    border: 4px solid var(--ink); color: var(--ink); text-transform: none; letter-spacing: normal;
+    font-family: Barlow, sans-serif; max-width: 100%; }
+  input[type=text] { text-transform: uppercase; letter-spacing: .35em; width: 11ch; font-weight: 700;
+                     font-size: 22px; text-align: center; }
+  input[type=number] { width: 8ch; }
+  .muted { color: #55525c; font-size: 15px; font-weight: 500; }
+
+  #choices { display: flex; flex-wrap: wrap; gap: clamp(16px, 2.5vw, 28px); align-items: center; }
+  #joinform { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 0; }
+  .or { font-family: Anton, Impact, sans-serif; text-transform: uppercase; font-size: 22px; }
+
+  #roomline { display: grid; gap: clamp(18px, 2.4vw, 28px); }
+  #codebox { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(16px, 3vw, 36px);
+             padding: clamp(16px, 2.2vw, 26px); }
+  #code { font-family: Anton, Impact, sans-serif; font-size: clamp(48px, 9vw, 104px); line-height: .9;
+          letter-spacing: .08em; margin: 0; color: var(--pink); text-shadow: 5px 5px 0 var(--ink); }
+  #codebox .side { display: flex; flex-direction: column; gap: 8px; min-width: min(100%, 240px); flex: 1;
+                   align-items: flex-start; }
+  #share { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink); word-break: break-all;
+           border-bottom: 3px solid var(--ink); text-decoration: none; align-self: flex-start; }
+  #share:hover { color: var(--pink); border-bottom-color: var(--pink); }
+  #who { margin: 0; font-weight: 700; font-size: 17px; }
+
+  #setup { display: grid; gap: 18px; justify-items: start; }
+  #setup .line, #setup ol { width: 100%; }
+  #setup .line { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  #list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+  #list li { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; background: #fff;
+             border: 4px solid var(--ink); font-weight: 700; font-size: 15px; }
+  /* the remove is a nub beside the track it removes, not another button competing with Start */
+  #list button { cursor: pointer; border: 3px solid var(--ink); background: var(--ink); color: var(--yellow);
+                 font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+                 letter-spacing: .14em; text-transform: uppercase; padding: 4px 8px; }
+  #list button:hover { background: var(--pink); color: #fff; }
+
+  /* the race */
+  #stage { position: relative; display: flex; align-items: center; justify-content: center;
+           background: var(--ink); border: 6px solid var(--ink); box-shadow: 12px 12px 0 var(--cyan);
+           overflow: hidden; min-height: 200px; }
+  #stage canvas { display: block; image-rendering: pixelated; background: #000;
+                  width: 960px; max-width: 100%; height: auto; }
+  /* The numbers have to live inside the stage, because the stage is what goes full screen and nothing
+     outside it is drawn once it does. */
+  #overlay { position: absolute; left: 10px; top: 8px; margin: 0; padding: 6px 10px; max-width: calc(100% - 20px);
+             background: rgba(17, 16, 20, .82); color: var(--yellow); font-size: 11px; line-height: 1.5;
+             letter-spacing: .02em; pointer-events: none; }
+  #stage:fullscreen { box-shadow: none; width: 100vw; height: 100vh; border: 0; }
+  #stage:fullscreen canvas { max-width: none; }
+  #under { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 22px 0 0; }
+  #board { padding: clamp(20px, 2.6vw, 32px); }
+  #board h2 { font-size: clamp(26px, 3.5vw, 40px); margin-bottom: 16px; }
+  #board ol { margin: 0; padding-left: 1.4em; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.9;
+              font-weight: 600; }
+  #board li.you { font-weight: 800; }
+  #board li.you::after { content: ' — you'; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+                         letter-spacing: .16em; text-transform: uppercase; }
+  /* say */
+  #say { background: var(--purple); }
+  #say .wrap { max-width: 880px; }
+  #say h2 { font-size: clamp(30px, 4.5vw, 56px); color: var(--yellow); text-shadow: 5px 5px 0 var(--ink);
+            margin: 12px 0 10px; }
+  #say .lede { margin: 0 0 clamp(18px, 2.4vw, 26px); font-size: clamp(16px, 1.4vw, 19px); font-weight: 600;
+               line-height: 1.5; color: #fff; }
+  #feedbackform { margin: 0; }
+  #feedback { font: inherit; font-size: 16px; width: 100%; padding: 12px; background: #fff;
+              border: 4px solid var(--ink); resize: vertical; }
+  #feedbackform p { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 14px 0 0; }
+  #status { margin: 20px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+            line-height: 1.7; letter-spacing: .04em; word-break: break-word; }
+  #needfiles { margin-top: 24px; padding: clamp(18px, 2.4vw, 28px); max-width: 760px; }
+  #needfiles p { margin: 0 0 12px; line-height: 1.6; }
+  #needfiles p:last-child { margin-bottom: 0; }
+
+  /* how it works */
+  #how { background: var(--pink); }
+  #how h2 { font-size: clamp(32px, 5vw, 64px); color: var(--yellow); text-shadow: 5px 5px 0 var(--ink);
+            margin-bottom: clamp(20px, 3vw, 32px); }
+  #how .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+                gap: clamp(20px, 2.5vw, 32px); }
+  #how .card { margin: 0; padding: clamp(18px, 2.2vw, 26px); box-shadow: 8px 8px 0 var(--ink);
+               font-size: 16px; line-height: 1.6; display: flex; flex-direction: column;
+               gap: 14px; align-items: flex-start; }
+  #how .card p:last-child { margin: 0; }
+  kbd { display: inline-block; min-width: 34px; margin: 0 6px 6px 2px; padding: 5px 9px; text-align: center;
+        background: var(--yellow); border: 3px solid var(--ink); font-family: 'IBM Plex Mono', monospace;
+        font-size: 13px; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
+  /* the keys need room to breathe: without the extra leading the shadows touch the line above */
+  #how .card p:has(kbd) { line-height: 2.1; }
+
+  footer { background: var(--ink); padding: 30px clamp(20px, 5vw, 72px) 38px; }
+  footer p { max-width: 1180px; margin: 0 auto; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+             font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--cream); }
+</style>
+</head>
+<body>
+
+<section id="head">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <p class="tag">Two to four players</p>
+    <h1>Play online<br><span class="friends">With your friends!</span></h1>
+    <p class="lede card">One of you makes a room and reads out four letters; everybody else types them in.
+    Every machine runs the same race and watches its own car.</p>
+  </div>
+  <div class="chequer"></div>
+</section>
+
+<nav>
+  <div>
+    <a href="/#play">Play the original</a>
+    <a class="flagged here" href="/online.html">Play online<span class="badge">New</span></a>
+    <a href="/#the-port">The port</a>
+    <a href="/#controls">Controls</a>
+    <a href="/#whats-next">What's next</a>
+    <a href="https://github.com/hivvu/scale-miniatures" target="_blank" rel="noopener">GitHub &#8599;</a>
+    <a href="/#credits">Credits</a>
+  </div>
+</nav>
+
+<section id="play">
+  <div class="wrap">
+
+    <div id="lobby">
+      <h2>The room</h2>
+
+      <div id="choices" class="card panel">
+        <button id="create" class="btn" type="button">Make a room</button>
+        <span class="or">or</span>
+        <form id="joinform">
+          <label>Code <input id="joincode" type="text" maxlength="4" placeholder="ABCD" autocomplete="off"
+                             spellcheck="false"></label>
+          <button class="btn alt" type="submit">Join</button>
+        </form>
+      </div>
+
+      <div id="roomline" hidden>
+        <div id="codebox" class="card">
+          <p id="code"></p>
+          <div class="side">
+            <p class="tag">Share this</p>
+            <a id="share" href="#"></a>
+            <p id="who"></p>
+          </div>
+        </div>
+
+        <div id="setup" class="card panel" hidden>
+          <p class="tag">What you are racing</p>
+          <div class="line">
+            <label>Race <select id="kind">
+              <option value="race">A race</option>
+              <option value="h2h">Head to head</option>
+            </select></label>
+          </div>
+          <div class="line">
+            <label>Laps <input id="laps" type="number" min="3" max="40" step="1" value="3"></label>
+            <label>Cars <select id="cars">
+              <option value="4" selected>4</option>
+              <option value="3">3</option>
+              <option value="2">2</option>
+            </select></label>
+            <span class="muted">the seats nobody takes are driven by the computer</span>
+          </div>
+          <div class="line">
+            <label>Track <select id="track"></select></label>
+            <button id="add" class="btn small" type="button">Add to the playlist</button>
+          </div>
+          <ol id="list"></ol>
+        </div>
+
+        <p><button id="start" class="btn go" type="button" hidden disabled>Start the race</button></p>
+      </div>
+
+      <div id="needfiles" class="card" hidden>
+        <p><strong>This page is not serving the game.</strong> Point it at your own installed copy of Micro
+        Machines and it will start. The folder is read in your browser and stays on your machine: nothing is
+        uploaded.</p>
+        <p><button id="pickfolder" class="btn small" type="button">Choose your game folder</button>
+        <input id="folder" type="file" webkitdirectory multiple hidden>
+        <span id="why" class="muted"></span></p>
+        <p class="muted">It has to be the <em>installed</em> directory, the one with <code>MICRO.EXE</code>
+        and a <code>GAME1</code> folder in it.</p>
+      </div>
+    </div>
+
+    <div id="stage" hidden>
+      <canvas id="screen" width="320" height="200"></canvas>
+      <p id="overlay" class="mono" hidden></p>
+    </div>
+    <p id="under" hidden><button id="fullscreen" class="btn small" type="button">Full screen</button>
+      <span class="muted">or double click the race</span></p>
+
+    <div id="board" class="card" hidden></div>
+
+
+    <p id="status"></p>
+  </div>
+</section>
+
+<section id="say">
+  <div class="wrap">
+    <p class="tag">Beta</p>
+    <h2>Thanks for playing!</h2>
+    <p class="lede">This is still a work in progress. Any feedback you might have, let us know.</p>
+    <form id="feedbackform" class="card panel">
+      <textarea id="feedback" rows="4" placeholder="What did you make of it?"></textarea>
+      <p><button class="btn small" type="submit">Send it</button>
+        <span id="thanks" class="muted"></span></p>
+    </form>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>Before you start</h2>
+    <div class="cards">
+      <div class="card">
+        <p class="tag">Setting up</p>
+        <p>Pick the tracks and the order to race them in, anything from 3 to 40 laps, and 2, 3 or 4 cars,
+        with the seats nobody takes driven by the computer. There are points after every race and a table at
+        the end.</p>
+      </div>
+      <div class="card">
+        <p class="tag">Driving</p>
+        <p><kbd>W</kbd> to accelerate, <kbd>S</kbd> to brake and reverse, <kbd>A</kbd> and <kbd>D</kbd> to
+        steer, <kbd>Alt</kbd> to fire. The arrow keys work too.</p>
+      </div>
+      <div class="card">
+        <p class="tag">Your screen</p>
+        <p>Everybody watches their own car, so what you see is not what they see. The helmets down the left
+        are the running order, yours among them, and the number above them is the laps you have left.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Scale Miniatures &middot; unofficial fan work &middot; by hivvu</p>
+</footer>
+
+<script type="module" src="/src/app/online/main.ts"></script>
+</body>
+</html>

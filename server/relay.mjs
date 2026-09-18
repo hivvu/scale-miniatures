@@ -28,6 +28,12 @@ export const CODE_LENGTH = 4;
 export const MAX_PLAYERS = 4;
 /** A room nobody has spoken in for this long is gone. */
 export const IDLE_MS = 20 * 60 * 1000;
+/**
+ * How often to ping a quiet connection. Two people sitting in a lobby say nothing to each other, and
+ * Cloudflare drops a WebSocket that has been silent for about a hundred seconds, so without this the room
+ * dies while they are still reading the code out loud. Browsers answer a ping by themselves.
+ */
+export const KEEPALIVE_MS = 25 * 1000;
 const MAX_FRAME = 4096;
 const MAX_ROOMS_DEFAULT = 500;
 
@@ -177,7 +183,11 @@ export function start(port = PORT) {
     };
     client.send = send;
 
+    const beat = setInterval(() => send(OP.PING), KEEPALIVE_MS);
+    beat.unref?.();
+
     const bye = () => {
+      clearInterval(beat);
       if (client.code !== undefined) {
         for (const m of rooms.others(client.code, client.slot)) {
           m.send(OP.TEXT, JSON.stringify({ left: client.slot }));

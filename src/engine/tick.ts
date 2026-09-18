@@ -83,5 +83,8 @@ export function restore(cp: Checkpoint, race: Race): void {
   race.d.m.set(cp.m);
   race.over = cp.over;
   race.pauseStage = cp.pauseStage;
-  race.sounds.length = cp.sounds;
+  // Only ever shorter. The queue is the page's to empty, and a page with a sound device empties it every
+  // frame, so growing it back to the length it had at the checkpoint would hand that page a run of holes
+  // where sounds it has already played used to be.
+  race.sounds.length = Math.min(cp.sounds, race.sounds.length);
 }

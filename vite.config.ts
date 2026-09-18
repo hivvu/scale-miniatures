@@ -54,7 +54,10 @@ export default defineConfig({
   base: process.env['SM_BASE'] ?? '/',
   build: {
     rollupOptions: {
-      input: { index: 'index.html', viewer: 'viewer.html', race: 'race.html', game: 'game.html' },
+      input: {
+        index: 'index.html', viewer: 'viewer.html', race: 'race.html', game: 'game.html',
+        online: 'online.html',
+      },
     },
   },
 });

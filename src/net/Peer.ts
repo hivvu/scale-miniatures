@@ -109,7 +109,15 @@ export class Peer {
     this.rollbacks++;
     const draw = this.sim.onRender;
     this.sim.onRender = undefined;              // redo the state, not the pictures
+    // Nor the noise. Everything about to be re-run has already been heard once, on the guess that turned
+    // out wrong; a correction that played it all again would be a stutter on every rollback, and there are
+    // dozens a second.
+    const voice = this.sim.race.sound;
+    delete this.sim.race.sound;
+    const heard = this.sim.race.sounds.length;
     while (this.sim.step < was && !this.sim.over) { this.stepOnce(); this.resimulated++; }
+    this.sim.race.sounds.length = Math.min(this.sim.race.sounds.length, heard);
+    if (voice) this.sim.race.sound = voice;
     this.sim.onRender = draw;
   }
 
@@ -136,8 +144,23 @@ export class Peer {
   confirmedHash(): { step: number; hash: number } | undefined {
     const c = this.confirmed;
     if (c < 0) return undefined;
-    const cp = this.at(c + 1);                  // the state after the confirmed step ran
-    return cp ? { step: c, hash: hashBytes(cp.m) } : undefined;
+    const hash = this.hashAt(c);
+    return hash === undefined ? undefined : { step: c, hash };
+  }
+
+  /**
+   * The hash of the state after `step` ran, while that step is still in the rollback window; undefined once
+   * it has fallen out. That is how two machines compare: each sends the hash of a step it has finished, and
+   * the other answers the same question about the same step, or says nothing rather than guessing.
+   */
+  hashAt(step: number): number | undefined {
+    // The state after the newest step is not in the ring: a checkpoint is kept *before* each step, so the
+    // latest one is simply where the race is standing now. Without this the two machines have nothing to
+    // compare on a fast connection, which is precisely when they are most caught up, and the desync
+    // detector goes quiet exactly when it looks like it is working.
+    if (step === this.sim.step - 1) return this.sim.hash();
+    const cp = this.at(step + 1);               // the state after the step ran
+    return cp ? hashBytes(cp.m) : undefined;
   }
 
   /** Only for a test or a lab: force the state somewhere, and see the desync detector notice. */

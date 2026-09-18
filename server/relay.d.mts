@@ -5,6 +5,7 @@ export const ALPHABET: string;
 export const CODE_LENGTH: number;
 export const MAX_PLAYERS: number;
 export const IDLE_MS: number;
+export const KEEPALIVE_MS: number;
 
 export function makeCode(rand?: (n: number) => number): string;
 export function normaliseCode(input: unknown): string | undefined;

@@ -50,6 +50,26 @@ export class RaceRenderer {
   private readonly bufSize: number;
   /** cs:[8994]: fine x residue (0..3) applied when copying to VRAM. */
   fineX = 0;
+  /**
+   * Where this machine is looking, when that is not where the game's camera is.
+   *
+   * Unset, which is every page but the online one, the drawing reads the camera out of the data segment and
+   * nothing has changed. Set, the drawing follows this instead and the data segment's camera is left alone
+   * to carry on deciding what it decides: who is on screen, and therefore who gets the catch up boost, who
+   * is released after a respawn, and whose engine can be heard. That separation is what lets four people on
+   * four machines each watch their own car and still be in the same race. See engine/camera.ts.
+   */
+  view: { x: number; y: number } | undefined;
+  /**
+   * Whose laps-to-go the HUD shows. The game shows car 0's, because car 0 is the person holding the
+   * keyboard; online it has to be whoever this machine belongs to. Like `view`, it is read by the drawing
+   * and never written anywhere.
+   */
+  hudCar: number | undefined;
+  private get camX(): number { return this.view ? this.view.x : this.src.ds.r16(0x264A); }
+  private get camY(): number { return this.view ? this.view.y : this.src.ds.r16(0x264C); }
+  private get camXs(): number { return s16(this.camX); }
+  private get camYs(): number { return s16(this.camY); }
   private deferred: { di: number; tile: number }[] = [];
 
   /** Optional engine reference for read-only previews of what a state handler will draw this frame. */
@@ -99,7 +119,7 @@ export class RaceRenderer {
       // This is the one thing phased on the camera instead of placed by it, so a bigger view has to put the
       // camera back where the original's would be first: half the extra height is not a multiple of 16, and
       // without this the whole animated surface sits half of it out of step with the map drawn on top.
-      const cx = (d.r16(0x264A) + this.vp.camOffsetX) & 0xFFFF, cy = (d.r16(0x264C) + this.vp.camOffsetY) & 0xFFFF;
+      const cx = (this.camX + this.vp.camOffsetX) & 0xFFFF, cy = (this.camY + this.vp.camOffsetY) & 0xFFFF;
       const dx = (cx & 0x1F) >> 1, dy = (cy & 0x1F) >> 1;
       for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c++) this.src.banks[((r + dy) & 0xF) * 16 + ((c + dx) & 0xF)] = d.m[0x3EE3 + r * 16 + c]!;
     } else if (round === 2) {
@@ -122,7 +142,7 @@ export class RaceRenderer {
   // ---------------------------------------------------------------- tiles (9107..91ed)
   private tileLayer(): void {
     const d = this.src.ds;
-    const camX = d.r16(0x264A), camY = d.r16(0x264C);
+    const camX = this.camX, camY = this.camY;
     let dl = (camX >> 4) & 0xFF;                   // first tile column (mod 256, wraps at 0xC0)
     const dh = (dl + this.vp.cols) & 0xFF;         // one column more than the view needs
     let di = this.vp.margin - (camX & 0xF);
@@ -217,8 +237,8 @@ export class RaceRenderer {
     const src = 0x5CE3 + ((d.r16(bx + 0x12EF) - 1) << 7);
     const dz = d.rs16(bx + 0x12D6);
     let x = d.rs16(bx + 0x125C) - dz - 8, y = d.rs16(bx + 0x1268) - dz - 0x14;
-    x -= d.rs16(0x264A); if (x <= -0xC) x += 0xC00;
-    y -= d.rs16(0x264C); if (y <= -0xC) y += 0xC00;
+    x -= this.camXs; if (x <= -0xC) x += 0xC00;
+    y -= this.camYs; if (y <= -0xC) y += 0xC00;
     const c = this.clip(s16(x), s16(y), 0x10, 8);
     if (c) this.blitFromDs(src + c.srcOff, c.di, c.w, c.h, c.skip);
   }
@@ -244,13 +264,13 @@ export class RaceRenderer {
     let x = d.rs16(bx + 0x125C), y = d.rs16(bx + 0x1268);
     if (round === 9) {
       const f = frame > 4 ? frame - 5 : frame;
-      x -= d.rs16(0x264A); if (x <= -4) x += 0xC00;
-      y -= d.rs16(0x264C); if (y <= -4) y += 0xC00;
+      x -= this.camXs; if (x <= -4) x += 0xC00;
+      y -= this.camYs; if (y <= -4) y += 0xC00;
       const c = this.clip(s16(x - 0x14), s16(y - 0x14), 0x28, 0x28);
       if (c) this.blitSprite(f * 0x640 + c.srcOff, c.di, c.w, c.h, c.skip, 'plain', 0, extra);
     } else {
-      x -= d.rs16(0x264A); if (x <= -0xC) x += 0xC00;
-      y -= d.rs16(0x264C); if (y <= -0xC) y += 0xC00;
+      x -= this.camXs; if (x <= -0xC) x += 0xC00;
+      y -= this.camYs; if (y <= -0xC) y += 0xC00;
       const c = this.clip(s16(x - 0xC), s16(y - 0xC), 0x18, 0x18);
       if (c) this.blitSprite(frame * 0x240 + c.srcOff, c.di, c.w, c.h, c.skip, 'recolour', d.r16(bx + 0x1252) & 0xFF, extra);
     }
@@ -263,8 +283,8 @@ export class RaceRenderer {
     if (d.r16(bx + 0x12C2) !== 0) return this.car(bx, round);
     const frame = d.r16(table + d.r16(bx + 0x12B6) * 2 + 0x12);
     if (frame === 0xFFFE || frame === 0xFFFF || !this.src.extra) return;
-    let x = d.rs16(bx + 0x125C) - d.rs16(0x264A); if (x <= -0xC) x += 0xC00;
-    let y = d.rs16(bx + 0x1268) - d.rs16(0x264C); if (y <= -0xC) y += 0xC00;
+    let x = d.rs16(bx + 0x125C) - this.camXs; if (x <= -0xC) x += 0xC00;
+    let y = d.rs16(bx + 0x1268) - this.camYs; if (y <= -0xC) y += 0xC00;
     const c = this.clip(s16(x - 0xC), s16(y - 0xC), 0x18, 0x18);
     if (c) this.blitSprite(frame * 0x240 + c.srcOff, c.di, c.w, c.h, c.skip, 'recolour', d.r16(bx + 0x1252) & 0xFF, this.src.extra);
   }
@@ -282,8 +302,8 @@ export class RaceRenderer {
     else if (step >= 3) this.car(bx, round);
     const dz = d.rs16(bx + 0x12D6);
     let x = d.rs16(bx + 0x12BA) - dz, y = d.rs16(bx + 0x12BC) - dz;
-    x -= d.rs16(0x264A); if (x <= -0xC) x += 0xC00;
-    y -= d.rs16(0x264C); if (y <= -0xC) y += 0xC00;
+    x -= this.camXs; if (x <= -0xC) x += 0xC00;
+    y -= this.camYs; if (y <= -0xC) y += 0xC00;
     const c = this.clip(s16(x - 0xC), s16(y - 0xC), 0x18, 0x18);
     if (c) this.blitFromDs(0x45E3 + frame * 0x240 + c.srcOff, c.di, c.w, c.h, c.skip);
   }
@@ -296,8 +316,8 @@ export class RaceRenderer {
       const p = bx + dx;
       const age = d.r16(p + 0x1361);
       if (age === 0xFFFF) continue;
-      let x = s16(d.r16(p + 0x135D) - d.r16(0x264A)); if (x <= -0x20) x += 0xC00;
-      let y = s16(d.r16(p + 0x135F) - d.r16(0x264C)); if (y <= -0x20) y += 0xC00;
+      let x = s16(d.r16(p + 0x135D) - this.camX); if (x <= -0x20) x += 0xC00;
+      let y = s16(d.r16(p + 0x135F) - this.camY); if (y <= -0x20) y += 0xC00;
       const c = this.clip(x - 0xC, y - 0xC, 0x20, 0x20);
       if (!c) continue;
       this.blitFromDs(0x5EE3 + (age << 10) + c.srcOff, c.di, c.w, c.h, c.skip);
@@ -314,8 +334,8 @@ export class RaceRenderer {
       if (age === 0xFFFF) continue;
       const img = d.r16(p + 0x1307) + (age << 6);
       for (const [ox, oy] of [[0x12FD, 0x12FF], [0x1301, 0x1303]] as const) {
-        let x = s16(d.r16(p + ox) - d.r16(0x264A)); if (x <= -8) x += 0xC00;
-        let y = s16(d.r16(p + oy) - d.r16(0x264C)); if (y <= -8) y += 0xC00;
+        let x = s16(d.r16(p + ox) - this.camX); if (x <= -8) x += 0xC00;
+        let y = s16(d.r16(p + oy) - this.camY); if (y <= -8) y += 0xC00;
         x -= 4; y -= 4;                                        // fn 8cd0
         if (x < -0x17 || x > this.vp.width || y < -0x17 || y > this.vp.height) continue;   // fn 8ce4 (no clipping, just a bounds test)
         const di = (this.at(x, y) - this.fineX) & this.mask;
@@ -328,8 +348,8 @@ export class RaceRenderer {
    *  same shape as a colour-0 shadow. Bounds test only against the view, no clipping. */
   private bit8(img: number, wx: number, wy: number, shadow = false): void {
     const d = this.src.ds;
-    let x = s16(wx - d.r16(0x264A)); if (x <= -8) x += 0xC00;
-    let y = s16(wy - d.r16(0x264C)); if (y <= -8) y += 0xC00;
+    let x = s16(wx - this.camX); if (x <= -8) x += 0xC00;
+    let y = s16(wy - this.camY); if (y <= -8) y += 0xC00;
     x -= 4; y -= 4;
     if (x < -0x17 || x > this.vp.width || y < -0x17 || y > this.vp.height) return;
     let di = (this.at(x, y) - this.fineX) & this.mask;
@@ -372,6 +392,15 @@ export class RaceRenderer {
     if (h2h) this.banner(h2h.src, h2h.x, h2h.y);
   }
 
+  /**
+   * Laps to go, in the corner. One digit is all the original ever needs and all it draws; a race set to
+   * more than nine gets a tens column beside it, in the space the rank icons start below.
+   */
+  private laps(n: number): void {
+    if (n >= 10) this.digit(Math.floor(n / 10) % 10, this.at(0, 0));
+    this.digit(n % 10, this.at(8, 0));
+  }
+
   /** fn 35f0 at 3760: the Paused! banner (PH0 sprite 0x9d63) over the frame that is already on screen. */
   pauseFrame(): Uint8Array {
     this.src.ds.w8(0x26CF, 0);
@@ -404,12 +433,12 @@ export class RaceRenderer {
     }
     if (d.r16(0x2656) === 2) {                           // head to head: leader lap digit + 8-segment tug bar
       const bx = d.r16(0x2678);
-      this.digit(d.r16(bx + 0x12ED), this.at(8, 0));
+      this.laps(d.r16(bx + 0x12ED));
       const score = d.rs16(0x26B4);
       for (let i = 8; i >= 1; i--) this.blitHud(i > score ? 0x5AE3 : 0x59E3, this.at(0, 16 + (8 - i) * 16), 16, 16);
       return;
     }
-    this.digit(d.r16(d.r16(0x2660) + 0x12ED), this.at(8, 0));   // player's laps to go
+    this.laps(d.r16((this.hudCar ?? d.r16(0x2660)) + 0x12ED));   // player's laps to go
     for (let i = 0; i < 4; i++) {
       this.carIcon(d.r16(0x2678 + i * 2), this.at(0, 16 + i * 16));
       this.digit(i + 1, this.at(16, 16 + i * 16));
@@ -483,13 +512,13 @@ export class RaceRenderer {
     if (round === 9) {
       if (bx !== 0) return;
       frame = heading * 200; size = 0x28;
-      x -= d.rs16(0x264A); if (x <= -4) x += 0xC00;
-      y -= d.rs16(0x264C); if (y <= -4) y += 0xC00;
+      x -= this.camXs; if (x <= -4) x += 0xC00;
+      y -= this.camYs; if (y <= -4) y += 0xC00;
       x -= 0x14; y -= 0x14;
     } else {
       frame = heading * 72; size = 0x18;
-      x -= d.rs16(0x264A); if (x <= -0xC) x += 0xC00;
-      y -= d.rs16(0x264C); if (y <= -0xC) y += 0xC00;
+      x -= this.camXs; if (x <= -0xC) x += 0xC00;
+      y -= this.camYs; if (y <= -0xC) y += 0xC00;
       x -= 0xC; y -= 0xC;
     }
     const c = this.clip(s16(x), s16(y), size, size);
@@ -506,8 +535,8 @@ export class RaceRenderer {
    *  centred 4 px up-left of the helicopter, plain blit. The counter itself advances in Race.fn7d73Visibility. */
   private rotor(bx: number): void {
     const d = this.src.ds;
-    let x = d.rs16(bx + 0x125C) - d.rs16(0x264A) - 4; if (x <= -0xC) x += 0xC00;
-    let y = d.rs16(bx + 0x1268) - d.rs16(0x264C) - 4; if (y <= -0xC) y += 0xC00;
+    let x = d.rs16(bx + 0x125C) - this.camXs - 4; if (x <= -0xC) x += 0xC00;
+    let y = d.rs16(bx + 0x1268) - this.camYs - 4; if (y <= -0xC) y += 0xC00;
     const c = this.clip(s16(x - 0xC), s16(y - 0xC), 0x20, 0x20);
     if (c) this.blitFromDs(0x5EE3 + (((d.r16(bx + 0x1392) >> 1) & 3) << 10) + c.srcOff, c.di, c.w, c.h, c.skip);
   }
@@ -522,13 +551,13 @@ export class RaceRenderer {
     if (round === 9) {
       if (bx !== 0) return;
       frame = heading * 200; size = 0x28;
-      x -= d.rs16(0x264A); if (x <= -4) x += 0xC00;
-      y -= d.rs16(0x264C); if (y <= -4) y += 0xC00;
+      x -= this.camXs; if (x <= -4) x += 0xC00;
+      y -= this.camYs; if (y <= -4) y += 0xC00;
       x -= 0x14; y -= 0x14;
     } else {
       frame = heading * 72; size = 0x18;
-      x -= d.rs16(0x264A); if (x <= -0xC) x += 0xC00;
-      y -= d.rs16(0x264C); if (y <= -0xC) y += 0xC00;
+      x -= this.camXs; if (x <= -0xC) x += 0xC00;
+      y -= this.camYs; if (y <= -0xC) y += 0xC00;
       x -= 0xC; y -= 0xC;
     }
     const c = this.clip(s16(x), s16(y), size, size);

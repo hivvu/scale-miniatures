@@ -41,6 +41,8 @@ services:
     environment:
       SM_POLL_PORT: "8787"
       SM_POLL_FILE: /data/votes.ndjson
+      # What people write after a race online, kept apart from the poll's five answers.
+      SM_FEEDBACK_FILE: /data/feedback.ndjson
       # Caddy is in front, so the rate limit has to read the forwarded address and not Caddy's own.
       SM_POLL_PROXY: "1"
     volumes:

@@ -162,6 +162,24 @@ describe.skipIf(!have)('two machines over a wire', () => {
     expect(a.hash()).toBe(solo.hash());
   });
 
+  it('have something to compare even when the wire is fast enough that nothing is guessed', () => {
+    // The state after the newest step is not in the checkpoint ring, because a checkpoint is kept *before*
+    // each step. On a fast connection the confirmed step is the newest one, so a detector that only looked
+    // in the ring found nothing and said nothing, on exactly the connection that looks healthiest.
+    const [a, b] = play(300, 0);
+    const ca = a.confirmedHash(), cb = b.confirmedHash();
+    expect(ca).toBeDefined();
+    expect(cb?.step).toBe(ca?.step);
+    expect(cb?.hash).toBe(ca?.hash);
+  });
+
+  it('notice one machine being wrong about the past', () => {
+    const [a, b] = play(300, 0);
+    const at = a.confirmedHash()!.step;
+    b.poke(0x1262, b.sim.d.r8(0x1262) ^ 0xFF);
+    expect(b.hashAt(at)).not.toBe(a.hashAt(at));
+  });
+
   it('cost less to put right than to run in the first place', () => {
     // A sanity bound on the work: correcting should re-run a fraction of the steps, not all of them again
     // and again. If this ever blows up, the window or the prediction is wrong, not the machine.

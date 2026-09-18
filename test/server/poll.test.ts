@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OPTIONS, parseVote, tally, readVotes, makeLimiter } from '../../server/poll.mjs';
+import { OPTIONS, parseVote, parseFeedback, MAX_FEEDBACK, tally, readVotes, makeLimiter } from '../../server/poll.mjs';
 
 const first = OPTIONS[0]!.id, second = OPTIONS[1]!.id;
 
@@ -107,5 +107,32 @@ describe('the rate limit', () => {
     expect(allow('1.2.3.4', 20)).toBe(false);
     expect(allow('5.6.7.8', 20)).toBe(true);      // somebody else is not affected
     expect(allow('1.2.3.4', 2000)).toBe(true);    // and the window moves on
+  });
+});
+
+
+describe('what somebody writes after a race', () => {
+  it('takes the words and tidies them', () => {
+    expect(parseFeedback({ text: '  the boats are too fast  ' }))
+      .toEqual({ note: { text: 'the boats are too fast' } });
+  });
+
+  it('keeps the room code when there is one, so a report can be lined up with the relay', () => {
+    expect(parseFeedback({ text: 'we desynced', room: 'bcdf' }))
+      .toEqual({ note: { text: 'we desynced', room: 'BCDF' } });
+    expect(parseFeedback({ text: 'hi', room: 'nope!' }).error).toMatch(/four letters/);
+  });
+
+  it('refuses an empty one, and anything that is not an object', () => {
+    expect(parseFeedback({ text: '   ' }).error).toMatch(/nothing/);
+    expect(parseFeedback({}).error).toMatch(/string/);
+    expect(parseFeedback([]).error).toMatch(/object/);
+    expect(parseFeedback(null).error).toMatch(/object/);
+  });
+
+  it('cuts off an essay rather than refusing it', () => {
+    const long = 'x'.repeat(MAX_FEEDBACK + 500);
+    const { note } = parseFeedback({ text: long });
+    expect(note?.text).toHaveLength(MAX_FEEDBACK);
   });
 });

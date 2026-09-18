@@ -33,6 +33,34 @@ export interface RaceParams {
   inputs: [number, number, number, number];
   /** [2668..266e]: character chosen for each car (index into the AI skill table at ds:23dc). */
   characters: [number, number, number, number];
+  /**
+   * Laps to run, 3 in the original and every track. The game counts them down in [12ed] and has no idea
+   * that anybody might want more than a handful: the ranking score and the HUD digit both assume one digit,
+   * which is why race.ts works out its base rather than using the original's literal 9, and why the HUD
+   * grew a tens column. Left out, this is 3 and nothing has changed.
+   */
+  laps?: number | undefined;
+
+  /**
+   * How many cars are in the race at all, 2 to 4. Fewer than four is not an invention: head to head runs
+   * two, by leaving [124e] at zero for the other two so they are never activated or drawn, and this is the
+   * same switch. Left out, all four race, as they do in the original's one player game.
+   */
+  cars?: number | undefined;
+
+  /**
+   * How many of the four cars a person is driving.
+   *
+   * The original can never be more than two, so its own race reset forces cars 1 to 3 to the AI whatever
+   * the menus asked for, and derives each car's AI flag from that. Left out (the default) nothing changes
+   * and the setup is the original's, byte for byte.
+   *
+   * This is half of a four player race. The other half is the camera, which in this game is a rule and not
+   * a view (on screen decides fn 4aee's catch up boost, the round 6 respawn, the release after a respawn):
+   * see engine/camera.ts, where the drawing gets a camera of its own so that four machines can each watch
+   * their own car and still run one race.
+   */
+  humanCars?: number | undefined;
   /** How much of the world the race will draw. Only the camera depends on it; defaults to the original. */
   viewport?: Viewport | undefined;
 }
@@ -259,6 +287,18 @@ function initRaceState(d: DataSegment, p: RaceParams): void {
   wr(0x144F, 1); wr(0x15B3, 1); wr(0x1717, 1); wr(0x265C, 6); wr(0x265E, 6);
   if (p.mode !== 1) { wr(0x144F, 0); wr(0x1516, 0); wr(0x167A, 0); } else wr(0x265A, 6);
   if (p.round === 9) { wr(0x13B2, 0); wr(0x1516, 0); wr(0x167A, 0); wr(0x27B5, 1); }
+  // Fewer than four cars, by the same switch head to head uses two lines above: [124e] is what the per-car
+  // reset copies into [124c], the active-and-drawn flag, so a car left at zero never starts.
+  for (let i = p.cars ?? 4; i < 4; i++) wr(CARS[i]! + 0x124E, 0);
+  // Two of those writes above are the original's two-player limit: [265c] and [265e] (and [265a] in a one
+  // player game) go to the AI however the caller set them, because no PC in 1994 had four people on it.
+  // Online it can, so the source a caller gave for a driven car is put back, and it has to happen here:
+  // the next line reads these words to decide which cars the AI steers, and a car marked as AI is steered
+  // by it as well as read from it.
+  for (let i = 0; i < (p.humanCars ?? 0); i++) {
+    wr(0x2658 + i * 2, p.inputs[i]!);
+    wr(d.r16(0x2660 + i * 2) + 0x12EB, 0);      // and it is no longer one of the AI's, which was set above
+  }
   for (let i = 0; i < 4; i++) if (d.r16(0x2658 + i * 2) === 6) wr(d.r16(0x2660 + i * 2) + 0x12EB, 1);
 
   // per-car reset (4220..4444)
@@ -275,7 +315,7 @@ function initRaceState(d: DataSegment, p: RaceParams): void {
     for (const o of [0x12DA, 0x12DC, 0x12DE]) wr(bx + o, 0);
     d.w8(bx + 0x12E0, 0);
     for (const o of [0x12E1, 0x12E3, 0x12E5, 0x12E7, 0x12E9]) wr(bx + o, 0);
-    wr(bx + 0x12ED, 3);
+    wr(bx + 0x12ED, p.laps ?? 3);
     wr(bx + 0x12F1, d.r16(bx + 0x125C)); wr(bx + 0x12F3, d.r16(bx + 0x1268));
     wr(bx + 0x12F5, 0); wr(bx + 0x12F7, 0); d.w8(bx + 0x137B, 0); wr(bx + 0x1382, 0); wr(bx + 0x1384, 0);
     wr(bx + 0x124C, d.r16(bx + 0x124E));

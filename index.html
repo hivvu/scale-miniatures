@@ -90,6 +90,13 @@
   nav a { padding: 16px 14px; color: var(--yellow); text-decoration: none; font-family: 'IBM Plex Mono', monospace;
           font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
   nav a:hover { color: var(--ink); background: var(--yellow); }
+  /* The new thing gets a flag in its corner, and the room for it: without the extra padding the badge
+     would sit over whatever the next item is, and the items wrap on a narrow window. */
+  nav a.flagged { position: relative; padding-right: 46px; }
+  nav .badge { position: absolute; top: 9px; right: 8px; background: var(--pink); color: #fff;
+               font-size: 9px; font-weight: 700; letter-spacing: .14em; padding: 2px 5px; }
+  nav a.flagged:hover .badge { background: var(--ink); color: var(--yellow); }
+  nav a.here { color: var(--ink); background: var(--yellow); }
 
   /* play */
   #play { background: var(--yellow); }
@@ -233,7 +240,8 @@
 
 <nav>
   <div>
-    <a href="#play">Play</a>
+    <a href="#play">Play the original</a>
+    <a class="flagged" href="/online.html">Play online<span class="badge">New</span></a>
     <a href="#the-port">The port</a>
     <a href="#controls">Controls</a>
     <a href="#whats-next">What's next</a>
