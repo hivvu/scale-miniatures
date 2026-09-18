@@ -23,6 +23,23 @@ function serveGameFiles(): Plugin {
   };
 }
 
+/** Dev-only: the deployed site serves /online as online.html (see deploy/Caddyfile), so the dev server has
+ *  to do the same or the address only works in production, which is the worst place to find out. */
+function cleanUrls(): Plugin {
+  return {
+    name: 'clean-urls', apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const path = (req.url ?? '').split('?')[0];
+        if (path && !path.includes('.') && existsSync(join(process.cwd(), `${path.replace(/\/$/, '')}.html`))) {
+          req.url = `${path.replace(/\/$/, '')}.html${(req.url ?? '').slice(path.length)}`;
+        }
+        next();
+      });
+    },
+  };
+}
+
 /** Vite only copies `public/`, and there is no `public/`. The manifest is the index a served copy of the
  *  game is read through, and it is the one piece of game metadata this repository keeps (paths, sizes and
  *  hashes, no content at all), so a build has to carry it. */
@@ -37,7 +54,7 @@ function emitManifest(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [serveGameFiles(), emitManifest()],
+  plugins: [serveGameFiles(), cleanUrls(), emitManifest()],
   // The page asks its own origin for /api/poll, so in dev that has to go somewhere. Run `npm run poll`
   // beside `npm run dev` and the whole thing works locally, voting included; without it the fetch fails and
   // the page drops the section, which is also worth being able to see.

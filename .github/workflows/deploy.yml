@@ -103,7 +103,9 @@ jobs:
       - name: Check it is actually answering
         run: |
           set -euo pipefail
-          for path in / /manifest.json /api/poll /api/relay; do
+          # /online is the clean URL the page is linked as: if the Caddy rewrite is wrong it answers 404,
+          # and that is worth failing the deploy over rather than finding out from a visitor.
+          for path in / /online /manifest.json /api/poll /api/relay; do
             code=$(docker exec scale-miniatures-web wget -qO- -S "http://localhost$path" 2>&1 >/dev/null \
               | grep -oE 'HTTP/1.1 [0-9]+' | head -1 | grep -oE '[0-9]+$')
             echo "  $path -> $code"
